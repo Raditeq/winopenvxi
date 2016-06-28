@@ -87,7 +87,7 @@ static int debug = 1;
 static int debug = 0;
 #endif
 
-main()
+portmap_main()
 {
 	SVCXPRT *xprt;
 	int sock, pid, t;
