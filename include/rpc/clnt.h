@@ -138,7 +138,7 @@ struct rpc_err {
  * Created by individual implementations, see e.g. rpc_udp.c.
  * Client is responsible for initializing auth, see e.g. auth_none.c.
  */
-typedef struct {
+struct CLIENT {
 	AUTH	*cl_auth;			/* authenticator */
 	struct clnt_ops {
 		enum clnt_stat	(*cl_call)();	/* call remote procedure */
@@ -149,7 +149,8 @@ typedef struct {
 		bool_t          (*cl_control)();/* the ioctl() of rpc */
 	} *cl_ops;
 	caddr_t			cl_private;	/* private stuff */
-} CLIENT;
+};
+typedef struct CLIENT CLIENT;
 
 
 /*
@@ -230,8 +231,7 @@ typedef struct {
  * 	CLIENT *rh;
  */
 #define	CLNT_DESTROY(rh)	((*(rh)->cl_ops->cl_destroy)(rh))
-#define	clnt_destroy(rh)	((*(rh)->cl_ops->cl_destroy)(rh))
-
+DllExport void clnt_destroy();
 
 /*
  * RPCTEST is a test program which is accessable on every rpc
@@ -347,7 +347,7 @@ struct rpc_createerr {
 extern struct rpc_createerr rpc_createerr;
 #else
 #ifdef __BORLANDC__
-extern __declspec(dllimport) struct rpc_createerr rpc_createerr;
+DllImport struct rpc_createerr rpc_createerr;
 #else
 DllExport struct rpc_createerr rpc_createerr;
 #endif

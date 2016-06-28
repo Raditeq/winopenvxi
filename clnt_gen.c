@@ -146,3 +146,11 @@ clnt_create(hostname, prog, vers, proto)
 	}
 	return (client);
 }
+
+void
+clnt_destroy(rh)
+	CLIENT *rh;
+{
+  CLNT_DESTROY(rh);
+}
+
