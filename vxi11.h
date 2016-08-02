@@ -1,4 +1,9 @@
 
+// This file is in the Public Domain:
+// - You can do anything you want with it.
+// - You have no legal obligation to do anything else.
+// - There is NO WARRANTY of any kind.
+
 #ifndef _VXI11_H_
 #define _VXI11_H_
 
