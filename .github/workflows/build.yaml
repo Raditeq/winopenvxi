@@ -1,0 +1,44 @@
+name: create-library
+
+on:
+    push:
+        branches: [master]
+    pull_request:
+        branches: [master]
+
+jobs:
+    build:
+        runs-on: windows-latest
+
+        steps:
+            - name: Checkout the code
+              uses: actions/checkout@v2
+
+            - name: setup-msbuild
+              uses: microsoft/setup-msbuild@v1.1
+
+            - name: Build 64bit
+              run: MSBuild.exe /p:Configuration=Release /p:Platform=x64
+
+            - name: Build 32bit
+              run: MSBuild.exe /p:Configuration=Release /p:Platform=x86
+
+            - name: Archive generated DLL 64bit
+              uses: actions/upload-artifact@v3
+              with:
+                name: build_64bit
+                path: |
+                    x64/Release/oncrpc.dll
+                    x64/Release/oncrpc.lib
+                    x64/Release/winopenvxi.dll
+                    x64/Release/winopenvxi.lib
+
+            - name: Archive generated DLL
+              uses: actions/upload-artifact@v3
+              with:
+                name: build_32bit
+                path: |
+                    Release/oncrpc.dll
+                    Release/oncrpc.lib
+                    Release/winopenvxi.dll
+                    Release/winopenvxi.lib
