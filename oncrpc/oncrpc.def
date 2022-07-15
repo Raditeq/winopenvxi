@@ -25,6 +25,8 @@ pmap_getmaps
 pmap_getport
 pmap_set
 pmap_unset
+pmap_settimeout
+pmap_gettimeout
 rpc_nt_exit
 rpc_nt_init
 svc_getreq

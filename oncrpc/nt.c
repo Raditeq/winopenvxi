@@ -52,20 +52,25 @@ int rpc_nt_exit(void)
 }
 
 VOID
-nt_rpc_report(LPTSTR lpszMsg)
+nt_rpc_report(LPCSTR lpszMsg)
 {
-    CHAR    chMsg[256];
-    HANDLE  hEventSource;
-    LPTSTR  lpszStrings[2];
+    WCHAR chMsg[256];
+    LPCWSTR lpszStrings[2];
+    CONST size_t wideMessageBytes = strlen(lpszMsg) * sizeof(WCHAR);
+    WCHAR* wideMessage = (WCHAR *) malloc(wideMessageBytes);
 
     // Use event logging to log the error.
     //
-    hEventSource = RegisterEventSource(NULL,
-                            TEXT("rpc.dll"));
+    const HANDLE hEventSource = RegisterEventSource(NULL,
+                                                    TEXT("rpc.dll"));
 
-    sprintf(chMsg, "sunrpc report: %d", GetLastError());
+    swprintf_s(chMsg, sizeof chMsg / sizeof chMsg[0], L"sunrpc report: %d", GetLastError());
+    if (wideMessage != NULL) {
+        swprintf_s(wideMessage, (wideMessageBytes / sizeof wideMessage[0]), L"%hs", lpszMsg);
+    }
+
     lpszStrings[0] = chMsg;
-    lpszStrings[1] = lpszMsg;
+    lpszStrings[1] = wideMessage;
 
     if (hEventSource != NULL) {
         ReportEvent(hEventSource, // handle of event source
@@ -79,6 +84,9 @@ nt_rpc_report(LPTSTR lpszMsg)
             NULL);                // no raw data
 
         (VOID) DeregisterEventSource(hEventSource);
+    }
+    if (wideMessage != NULL) {
+        free((void *)wideMessage);
     }
 }
 

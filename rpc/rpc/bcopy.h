@@ -24,7 +24,8 @@
  * USE OF. USE ENTIRELY AT YOUR OWN RISK!!!
  *********************************************************************/
 
-DllExport void bcopy(char *,char*,int);
+// TODO: convert to use size_t
+DllExport void bcopy(const char* from, char* to, int len);
 //void bcopy_nf(char *,char *,int);
 //void bcopy_fn(char *,char *,int);
 //void bcopy_ff(char *,char *,int);

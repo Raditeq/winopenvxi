@@ -112,11 +112,11 @@ struct pmap {
 	long unsigned pm_port;
 };
 
-DllExport bool_t xdr_pmap();
+DllExport bool_t xdr_pmap(XDR* xdrs, struct pmap* regs);
 
 struct pmaplist {
 	struct pmap	pml_map;
 	struct pmaplist *pml_next;
 };
 
-DllExport bool_t xdr_pmaplist();
+DllExport bool_t xdr_pmaplist(register XDR* xdrs, register struct pmaplist** rp);

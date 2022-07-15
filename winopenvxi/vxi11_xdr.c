@@ -1,11 +1,9 @@
-#include <rpc/rpc.h>
+#include <rpc/Rpc.h>
 #include "vxi11_prot.h"
 
 
 bool_t
-xdr_Device_Link(xdrs, objp)
-	XDR *xdrs;
-	Device_Link *objp;
+xdr_Device_Link(XDR* xdrs, Device_Link* objp)
 {
 	if (!xdr_long(xdrs, objp)) {
 		return (FALSE);
@@ -17,9 +15,7 @@ xdr_Device_Link(xdrs, objp)
 
 
 bool_t
-xdr_Device_AddrFamily(xdrs, objp)
-	XDR *xdrs;
-	Device_AddrFamily *objp;
+xdr_Device_AddrFamily(XDR* xdrs, Device_AddrFamily* objp)
 {
 	if (!xdr_enum(xdrs, (enum_t *)objp)) {
 		return (FALSE);
@@ -31,9 +27,7 @@ xdr_Device_AddrFamily(xdrs, objp)
 
 
 bool_t
-xdr_Device_Flags(xdrs, objp)
-	XDR *xdrs;
-	Device_Flags *objp;
+xdr_Device_Flags(XDR* xdrs, Device_Flags* objp)
 {
 	if (!xdr_long(xdrs, objp)) {
 		return (FALSE);
@@ -45,9 +39,7 @@ xdr_Device_Flags(xdrs, objp)
 
 
 bool_t
-xdr_Device_ErrorCode(xdrs, objp)
-	XDR *xdrs;
-	Device_ErrorCode *objp;
+xdr_Device_ErrorCode(XDR* xdrs, Device_ErrorCode* objp)
 {
 	if (!xdr_long(xdrs, objp)) {
 		return (FALSE);
@@ -59,9 +51,7 @@ xdr_Device_ErrorCode(xdrs, objp)
 
 
 bool_t
-xdr_Device_Error(xdrs, objp)
-	XDR *xdrs;
-	Device_Error *objp;
+xdr_Device_Error(XDR* xdrs, Device_Error* objp)
 {
 	if (!xdr_Device_ErrorCode(xdrs, &objp->error)) {
 		return (FALSE);
@@ -73,9 +63,7 @@ xdr_Device_Error(xdrs, objp)
 
 
 bool_t
-xdr_Create_LinkParms(xdrs, objp)
-	XDR *xdrs;
-	Create_LinkParms *objp;
+xdr_Create_LinkParms(XDR* xdrs, Create_LinkParms* objp)
 {
 	if (!xdr_long(xdrs, &objp->clientId)) {
 		return (FALSE);
@@ -86,19 +74,22 @@ xdr_Create_LinkParms(xdrs, objp)
 	if (!xdr_u_long(xdrs, &objp->lock_timeout)) {
 		return (FALSE);
 	}
-	if (!xdr_string(xdrs, &objp->device, ~0)) {
+	const size_t length = strlen(objp->device);
+	char* device = (char *) malloc(length);
+	if (device == NULL) {
 		return (FALSE);
 	}
-	return (TRUE);
+	strcpy_s(device, length, objp->device);
+	const bool_t result = xdr_string(xdrs, &device, ~(u_int)0);
+	free(device);
+	return result;
 }
 
 
 
 
 bool_t
-xdr_Create_LinkResp(xdrs, objp)
-	XDR *xdrs;
-	Create_LinkResp *objp;
+xdr_Create_LinkResp(XDR* xdrs, Create_LinkResp* objp)
 {
 	if (!xdr_Device_ErrorCode(xdrs, &objp->error)) {
 		return (FALSE);
@@ -119,9 +110,7 @@ xdr_Create_LinkResp(xdrs, objp)
 
 
 bool_t
-xdr_Device_WriteParms(xdrs, objp)
-	XDR *xdrs;
-	Device_WriteParms *objp;
+xdr_Device_WriteParms(XDR* xdrs, Device_WriteParms* objp)
 {
 	if (!xdr_Device_Link(xdrs, &objp->lid)) {
 		return (FALSE);
@@ -135,7 +124,7 @@ xdr_Device_WriteParms(xdrs, objp)
 	if (!xdr_Device_Flags(xdrs, &objp->flags)) {
 		return (FALSE);
 	}
-	if (!xdr_bytes(xdrs, (char **)&objp->data.data_val, (u_int *)&objp->data.data_len, ~0)) {
+	if (!xdr_bytes(xdrs, (char **)&objp->data.data_val, &objp->data.data_len, ~(u_int)0)) {
 		return (FALSE);
 	}
 	return (TRUE);
@@ -145,9 +134,7 @@ xdr_Device_WriteParms(xdrs, objp)
 
 
 bool_t
-xdr_Device_WriteResp(xdrs, objp)
-	XDR *xdrs;
-	Device_WriteResp *objp;
+xdr_Device_WriteResp(XDR* xdrs, Device_WriteResp* objp)
 {
 	if (!xdr_Device_ErrorCode(xdrs, &objp->error)) {
 		return (FALSE);
@@ -162,9 +149,7 @@ xdr_Device_WriteResp(xdrs, objp)
 
 
 bool_t
-xdr_Device_ReadParms(xdrs, objp)
-	XDR *xdrs;
-	Device_ReadParms *objp;
+xdr_Device_ReadParms(XDR* xdrs, Device_ReadParms* objp)
 {
 	if (!xdr_Device_Link(xdrs, &objp->lid)) {
 		return (FALSE);
@@ -191,9 +176,7 @@ xdr_Device_ReadParms(xdrs, objp)
 
 
 bool_t
-xdr_Device_ReadResp(xdrs, objp)
-	XDR *xdrs;
-	Device_ReadResp *objp;
+xdr_Device_ReadResp(XDR* xdrs, Device_ReadResp* objp)
 {
 	if (!xdr_Device_ErrorCode(xdrs, &objp->error)) {
 		return (FALSE);
@@ -201,7 +184,7 @@ xdr_Device_ReadResp(xdrs, objp)
 	if (!xdr_long(xdrs, &objp->reason)) {
 		return (FALSE);
 	}
-	if (!xdr_bytes(xdrs, (char **)&objp->data.data_val, (u_int *)&objp->data.data_len, ~0)) {
+	if (!xdr_bytes(xdrs, &objp->data.data_val, &objp->data.data_len, ~(u_int)0)) {
 		return (FALSE);
 	}
 	return (TRUE);
@@ -211,9 +194,7 @@ xdr_Device_ReadResp(xdrs, objp)
 
 
 bool_t
-xdr_Device_ReadStbResp(xdrs, objp)
-	XDR *xdrs;
-	Device_ReadStbResp *objp;
+xdr_Device_ReadStbResp(XDR* xdrs, Device_ReadStbResp* objp)
 {
 	if (!xdr_Device_ErrorCode(xdrs, &objp->error)) {
 		return (FALSE);
@@ -228,9 +209,7 @@ xdr_Device_ReadStbResp(xdrs, objp)
 
 
 bool_t
-xdr_Device_GenericParms(xdrs, objp)
-	XDR *xdrs;
-	Device_GenericParms *objp;
+xdr_Device_GenericParms(XDR* xdrs, Device_GenericParms* objp)
 {
 	if (!xdr_Device_Link(xdrs, &objp->lid)) {
 		return (FALSE);
@@ -251,9 +230,7 @@ xdr_Device_GenericParms(xdrs, objp)
 
 
 bool_t
-xdr_Device_RemoteFunc(xdrs, objp)
-	XDR *xdrs;
-	Device_RemoteFunc *objp;
+xdr_Device_RemoteFunc(XDR* xdrs, Device_RemoteFunc* objp)
 {
 	if (!xdr_u_long(xdrs, &objp->hostAddr)) {
 		return (FALSE);
@@ -277,9 +254,7 @@ xdr_Device_RemoteFunc(xdrs, objp)
 
 
 bool_t
-xdr_Device_EnableSrqParms(xdrs, objp)
-	XDR *xdrs;
-	Device_EnableSrqParms *objp;
+xdr_Device_EnableSrqParms(XDR* xdrs, Device_EnableSrqParms* objp)
 {
 	if (!xdr_Device_Link(xdrs, &objp->lid)) {
 		return (FALSE);
@@ -287,7 +262,7 @@ xdr_Device_EnableSrqParms(xdrs, objp)
 	if (!xdr_bool(xdrs, &objp->enable)) {
 		return (FALSE);
 	}
-	if (!xdr_bytes(xdrs, (char **)&objp->handle.handle_val, (u_int *)&objp->handle.handle_len, 40)) {
+	if (!xdr_bytes(xdrs, (char **)&objp->handle.handle_val, &objp->handle.handle_len, 40)) {
 		return (FALSE);
 	}
 	return (TRUE);
@@ -297,9 +272,7 @@ xdr_Device_EnableSrqParms(xdrs, objp)
 
 
 bool_t
-xdr_Device_LockParms(xdrs, objp)
-	XDR *xdrs;
-	Device_LockParms *objp;
+xdr_Device_LockParms(XDR* xdrs, Device_LockParms* objp)
 {
 	if (!xdr_Device_Link(xdrs, &objp->lid)) {
 		return (FALSE);
@@ -317,9 +290,7 @@ xdr_Device_LockParms(xdrs, objp)
 
 
 bool_t
-xdr_Device_DocmdParms(xdrs, objp)
-	XDR *xdrs;
-	Device_DocmdParms *objp;
+xdr_Device_DocmdParms(XDR* xdrs, Device_DocmdParms* objp)
 {
 	if (!xdr_Device_Link(xdrs, &objp->lid)) {
 		return (FALSE);
@@ -342,7 +313,7 @@ xdr_Device_DocmdParms(xdrs, objp)
 	if (!xdr_long(xdrs, &objp->datasize)) {
 		return (FALSE);
 	}
-	if (!xdr_bytes(xdrs, (char **)&objp->data_in.data_in_val, (u_int *)&objp->data_in.data_in_len, ~0)) {
+	if (!xdr_bytes(xdrs, &objp->data_in.data_in_val, &objp->data_in.data_in_len, ~(size_t)0)) {
 		return (FALSE);
 	}
 	return (TRUE);
@@ -352,17 +323,13 @@ xdr_Device_DocmdParms(xdrs, objp)
 
 
 bool_t
-xdr_Device_DocmdResp(xdrs, objp)
-	XDR *xdrs;
-	Device_DocmdResp *objp;
+xdr_Device_DocmdResp(XDR* xdrs, Device_DocmdResp* objp)
 {
 	if (!xdr_Device_ErrorCode(xdrs, &objp->error)) {
 		return (FALSE);
 	}
-	if (!xdr_bytes(xdrs, (char **)&objp->data_out.data_out_val, (u_int *)&objp->data_out.data_out_len, ~0)) {
+	if (!xdr_bytes(xdrs, &objp->data_out.data_out_val, &objp->data_out.data_out_len, ~(size_t)0)) {
 		return (FALSE);
 	}
 	return (TRUE);
 }
-
-

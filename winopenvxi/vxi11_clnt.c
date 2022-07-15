@@ -5,9 +5,7 @@
 static struct timeval TIMEOUT = { 25, 0 };
 
 Device_Error *
-device_abort_1(argp, clnt)
-	Device_Link *argp;
-	CLIENT *clnt;
+device_abort_1(Device_Link* argp, CLIENT* clnt)
 {
 	static Device_Error res;
 
@@ -20,9 +18,7 @@ device_abort_1(argp, clnt)
 
 
 Create_LinkResp *
-create_link_1(argp, clnt)
-	Create_LinkParms *argp;
-	CLIENT *clnt;
+create_link_1(Create_LinkParms*  argp, CLIENT* clnt)
 {
 	static Create_LinkResp res;
 
@@ -35,9 +31,7 @@ create_link_1(argp, clnt)
 
 
 Device_WriteResp *
-device_write_1(argp, clnt)
-	Device_WriteParms *argp;
-	CLIENT *clnt;
+device_write_1(Device_WriteParms* argp, CLIENT* clnt)
 {
 	static Device_WriteResp res;
 
@@ -50,9 +44,7 @@ device_write_1(argp, clnt)
 
 
 Device_ReadResp *
-device_read_1(argp, clnt)
-	Device_ReadParms *argp;
-	CLIENT *clnt;
+device_read_1(Device_ReadParms* argp, CLIENT* clnt)
 {
 	static Device_ReadResp res;
 
@@ -65,9 +57,7 @@ device_read_1(argp, clnt)
 
 
 Device_ReadStbResp *
-device_readstb_1(argp, clnt)
-	Device_GenericParms *argp;
-	CLIENT *clnt;
+device_readstb_1(Device_GenericParms* argp, CLIENT* clnt)
 {
 	static Device_ReadStbResp res;
 
@@ -80,9 +70,7 @@ device_readstb_1(argp, clnt)
 
 
 Device_Error *
-device_trigger_1(argp, clnt)
-	Device_GenericParms *argp;
-	CLIENT *clnt;
+device_trigger_1(Device_GenericParms* argp, CLIENT* clnt)
 {
 	static Device_Error res;
 
@@ -95,9 +83,7 @@ device_trigger_1(argp, clnt)
 
 
 Device_Error *
-device_clear_1(argp, clnt)
-	Device_GenericParms *argp;
-	CLIENT *clnt;
+device_clear_1(Device_GenericParms* argp, CLIENT* clnt)
 {
 	static Device_Error res;
 
@@ -110,9 +96,7 @@ device_clear_1(argp, clnt)
 
 
 Device_Error *
-device_remote_1(argp, clnt)
-	Device_GenericParms *argp;
-	CLIENT *clnt;
+device_remote_1(Device_GenericParms* argp, CLIENT* clnt)
 {
 	static Device_Error res;
 
@@ -125,9 +109,7 @@ device_remote_1(argp, clnt)
 
 
 Device_Error *
-device_local_1(argp, clnt)
-	Device_GenericParms *argp;
-	CLIENT *clnt;
+device_local_1(Device_GenericParms* argp, CLIENT* clnt)
 {
 	static Device_Error res;
 
@@ -140,9 +122,7 @@ device_local_1(argp, clnt)
 
 
 Device_Error *
-device_lock_1(argp, clnt)
-	Device_LockParms *argp;
-	CLIENT *clnt;
+device_lock_1(Device_LockParms* argp, CLIENT* clnt)
 {
 	static Device_Error res;
 
@@ -155,9 +135,7 @@ device_lock_1(argp, clnt)
 
 
 Device_Error *
-device_unlock_1(argp, clnt)
-	Device_Link *argp;
-	CLIENT *clnt;
+device_unlock_1(Device_Link* argp, CLIENT* clnt)
 {
 	static Device_Error res;
 
@@ -170,9 +148,7 @@ device_unlock_1(argp, clnt)
 
 
 Device_Error *
-device_enable_srq_1(argp, clnt)
-	Device_EnableSrqParms *argp;
-	CLIENT *clnt;
+device_enable_srq_1(Device_EnableSrqParms* argp, CLIENT* clnt)
 {
 	static Device_Error res;
 
@@ -185,9 +161,7 @@ device_enable_srq_1(argp, clnt)
 
 
 Device_DocmdResp *
-device_docmd_1(argp, clnt)
-	Device_DocmdParms *argp;
-	CLIENT *clnt;
+device_docmd_1(Device_DocmdParms* argp, CLIENT* clnt)
 {
 	static Device_DocmdResp res;
 
@@ -200,9 +174,7 @@ device_docmd_1(argp, clnt)
 
 
 Device_Error *
-destroy_link_1(argp, clnt)
-	Device_Link *argp;
-	CLIENT *clnt;
+destroy_link_1(Device_Link* argp, CLIENT* clnt)
 {
 	static Device_Error res;
 
@@ -215,9 +187,7 @@ destroy_link_1(argp, clnt)
 
 
 Device_Error *
-create_intr_chan_1(argp, clnt)
-	Device_RemoteFunc *argp;
-	CLIENT *clnt;
+create_intr_chan_1(Device_RemoteFunc* argp, CLIENT* clnt)
 {
 	static Device_Error res;
 
@@ -230,9 +200,7 @@ create_intr_chan_1(argp, clnt)
 
 
 Device_Error *
-destroy_intr_chan_1(argp, clnt)
-	void *argp;
-	CLIENT *clnt;
+destroy_intr_chan_1(void* argp, CLIENT* clnt)
 {
 	static Device_Error res;
 

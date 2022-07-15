@@ -114,9 +114,7 @@ static struct {
  * invalid.
  */
 enum auth_stat
-_authenticate(rqst, msg)
-	register struct svc_req *rqst;
-	struct rpc_msg *msg;
+_authenticate(register struct svc_req* rqst, struct rpc_msg* msg)
 {
 	register int cred_flavor;
 

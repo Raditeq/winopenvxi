@@ -118,9 +118,9 @@ DllExport bool_t xdr_des_block();
  * Authentication info.  Opaque to client.
  */
 struct opaque_auth {
-	enum_t	oa_flavor;		/* flavor of auth */
+	enum_t oa_flavor;		/* flavor of auth */
 	caddr_t	oa_base;		/* address of more auth stuff */
-	u_int	oa_length;		/* not to exceed MAX_AUTH_BYTES */
+	size_t oa_length;		/* not to exceed MAX_AUTH_BYTES */
 };
 
 
@@ -203,7 +203,7 @@ DllExport struct opaque_auth _null_auth;
  *	int len;
  *	int *aup_gids;
  */
-DllExport AUTH *authunix_create();
+DllExport AUTH *authunix_create(char* machname, int uid, int gid, register int len, int* aup_gids);
 DllExport AUTH *authunix_create_default();	/* takes no parameters */
 DllExport AUTH *authnone_create();		/* takes no parameters */
 DllExport AUTH *authdes_create();

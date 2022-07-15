@@ -154,10 +154,7 @@ struct tcp_conn {  /* kept in xprt->xp_p1 */
  * 0 => use the system default.
  */
 SVCXPRT *
-svctcp_create(sock, sendsize, recvsize)
-	register int sock;
-	u_int sendsize;
-	u_int recvsize;
+svctcp_create(register socket_t sock, u_int sendsize, u_int recvsize)
 {
 	bool_t madesock = FALSE;
 	register SVCXPRT *xprt;
@@ -165,11 +162,11 @@ svctcp_create(sock, sendsize, recvsize)
 	struct sockaddr_in addr;
 	int len = sizeof(struct sockaddr_in);
 
-	if (sock == RPC_ANYSOCK) {
+	if (sock.fd == RPC_ANYSOCK) {
 #ifdef _WIN32
-		if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+		if ((sock.socket = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
 #else
-		if ((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+		if ((sock.socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
 #endif
 			perror("svctcp_.c - udp socket creation problem");
 			return ((SVCXPRT *)NULL);
@@ -180,16 +177,16 @@ svctcp_create(sock, sendsize, recvsize)
 	addr.sin_family = AF_INET;
 	if (bindresvport(sock, &addr)) {
 		addr.sin_port = 0;
-		(void)bind(sock, (struct sockaddr *)&addr, len);
+		(void)bind(sock.socket, (struct sockaddr *)&addr, len);
 	}
-	if ((getsockname(sock, (struct sockaddr *)&addr, &len) != 0)  ||
-	    (listen(sock, 2) != 0)) {
+	if ((getsockname(sock.socket, (struct sockaddr *)&addr, &len) != 0)  ||
+	    (listen(sock.socket, 2) != 0)) {
 		perror("svctcp_.c - cannot getsockname or listen");
 		if (madesock)
 #ifdef _WIN32
-		       (void)closesocket(sock);
+		       (void)closesocket(sock.socket);
 #else
-		       (void)close(sock);
+		       (void)close(sock.socket);
 #endif
 		return ((SVCXPRT *)NULL);
 	}
@@ -275,7 +272,7 @@ makefd_xprt(fd, sendsize, recvsize)
 	xprt->xp_addrlen = 0;
 	xprt->xp_ops = &svctcp_op;  /* truely deals with calls */
 	xprt->xp_port = 0;  /* this is a connection, not a rendezvouser */
-	xprt->xp_sock = fd;
+	xprt->xp_sock.fd = fd;
 	xprt_register(xprt);
     done:
 	return (xprt);
@@ -293,7 +290,7 @@ rendezvous_request(xprt)
 	r = (struct tcp_rendezvous *)xprt->xp_p1;
     again:
 	len = sizeof(struct sockaddr_in);
-	if ((sock = accept(xprt->xp_sock, (struct sockaddr *)&addr,
+	if ((sock = accept(xprt->xp_sock.socket, (struct sockaddr *)&addr,
 	    &len)) < 0) {
 #ifdef _WIN32
 		if (WSAerrno == WSAEINTR)
@@ -327,7 +324,7 @@ svctcp_destroy(xprt)
 
 	xprt_unregister(xprt);
 #ifdef _WIN32
-	(void)closesocket(xprt->xp_sock);
+	(void)closesocket(xprt->xp_sock.socket);
 #else
 	(void)close(xprt->xp_sock);
 #endif
@@ -359,13 +356,13 @@ readtcp(xprt, buf, len)
 	caddr_t buf;
 	register int len;
 {
-	register int sock = xprt->xp_sock;
+	register socket_t sock = xprt->xp_sock;
 #ifdef FD_SETSIZE
 	fd_set mask;
 	fd_set readfds;
 
 	FD_ZERO(&mask);
-	FD_SET(sock, &mask);
+	FD_SET(sock.socket, &mask);
 #else
 	register int mask = 1 << sock;
 	int readfds;
@@ -388,14 +385,14 @@ readtcp(xprt, buf, len)
 			goto fatal_err;
 		}
 #ifdef FD_SETSIZE
-	} while (!FD_ISSET(sock, &readfds));
+	} while (!FD_ISSET(sock.socket, &readfds));
 #else
 	} while (readfds != mask);
 #endif /* def FD_SETSIZE */
 #ifdef _WIN32
-	if ((len = recv(sock, buf, len, 0)) > 0) {
+	if ((len = recv(sock.socket, buf, len, 0)) > 0) {
 #else
-	if ((len = read(sock, buf, len)) > 0) {
+	if ((len = read(sock.socket, buf, len)) > 0) {
 #endif
 		return (len);
 	}
@@ -418,9 +415,9 @@ writetcp(xprt, buf, len)
 
 	for (cnt = len; cnt > 0; cnt -= i, buf += i) {
 #ifdef _WIN32
-		if ((i = send(xprt->xp_sock, buf, cnt, 0)) < 0) {
+		if ((i = send(xprt->xp_sock.socket, buf, cnt, 0)) < 0) {
 #else
-		if ((i = write(xprt->xp_sock, buf, cnt)) < 0) {
+		if ((i = write(xprt->xp_sock.socket, buf, cnt)) < 0) {
 #endif
 			((struct tcp_conn *)(xprt->xp_p1))->strm_stat =
 			    XPRT_DIED;

@@ -71,9 +71,7 @@ static char sccsid[] = "@(#)rpc_callmsg.c 1.4 87/08/11 Copyr 1984 Sun Micro";
  * XDR a call message
  */
 bool_t
-xdr_callmsg(xdrs, cmsg)
-	register XDR *xdrs;
-	register struct rpc_msg *cmsg;
+xdr_callmsg(register XDR* xdrs, register struct rpc_msg* cmsg)
 {
 	register long *buf;
 	register struct opaque_auth *oa;
@@ -166,7 +164,8 @@ xdr_callmsg(xdrs, cmsg)
 			buf = XDR_INLINE(xdrs, 2 * BYTES_PER_XDR_UNIT);
 			if (buf == NULL) {
 				if (xdr_enum(xdrs, &oa->oa_flavor) == FALSE ||
-				    xdr_u_int(xdrs, &oa->oa_length) == FALSE) {
+					xdr_u_long(xdrs, (u_long *) &oa->oa_length) == FALSE
+					) {
 					return (FALSE);
 				}
 			} else {

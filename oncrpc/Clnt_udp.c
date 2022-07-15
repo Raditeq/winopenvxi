@@ -94,19 +94,19 @@ static struct clnt_ops udp_ops = {
  * Private data kept per client handle
  */
 struct cu_data {
-	int		   cu_sock;
-	bool_t		   cu_closeit;
+	socket_t cu_sock;
+	bool_t cu_closeit;
 	struct sockaddr_in cu_raddr;
-	int		   cu_rlen;
-	struct timeval	   cu_wait;
-	struct timeval     cu_total;
-	struct rpc_err	   cu_error;
-	XDR		   cu_outxdrs;
-	u_int		   cu_xdrpos;
-	u_int		   cu_sendsz;
-	char		   *cu_outbuf;
-	u_int		   cu_recvsz;
-	char		   cu_inbuf[1];
+	size_t cu_rlen;
+	struct timeval cu_wait;
+	struct timeval cu_total;
+	struct rpc_err cu_error;
+	XDR cu_outxdrs;
+	u_int cu_xdrpos;
+	size_t cu_sendsz;
+	char *cu_outbuf;
+	size_t cu_recvsz;
+	char cu_inbuf[1];
 };
 
 /*
@@ -126,17 +126,10 @@ struct cu_data {
  * sent and received.
  */
 CLIENT *
-clntudp_bufcreate(raddr, program, version, wait, sockp, sendsz, recvsz)
-	struct sockaddr_in *raddr;
-	u_long program;
-	u_long version;
-	struct timeval wait;
-	register int *sockp;
-	u_int sendsz;
-	u_int recvsz;
+clntudp_bufcreate(struct sockaddr_in* raddr, u_long program, u_long version, struct timeval wait, socket_t* sockp, u_int sendsz, u_int recvsz)
 {
 	CLIENT *cl;
-	register struct cu_data *cu;
+	register struct cu_data *cu = NULL;
 	struct timeval now;
 	struct rpc_msg call_msg;
 
@@ -199,16 +192,16 @@ clntudp_bufcreate(raddr, program, version, wait, sockp, sendsz, recvsz)
 		goto fooy;
 	}
 	cu->cu_xdrpos = XDR_GETPOS(&(cu->cu_outxdrs));
-	if (*sockp < 0) {
+	if (sockp->fd < 0) {
 		int dontblock = 1;
 
-		*sockp = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		sockp->socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 #ifdef _WIN32
-		if (*sockp == INVALID_SOCKET) {
+		if (sockp->fd == INVALID_SOCKET) {
 			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 			rpc_createerr.cf_error.re_errno = WSAerrno;
 #else
-		if (*sockp < 0) {
+		if (sockp->fd < 0) {
 			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 			rpc_createerr.cf_error.re_errno = errno;
 #endif
@@ -218,9 +211,9 @@ clntudp_bufcreate(raddr, program, version, wait, sockp, sendsz, recvsz)
 		(void)bindresvport(*sockp, (struct sockaddr_in *)0);
 		/* the sockets rpc controls are non-blocking */
 #ifdef _WIN32
-		(void)ioctlsocket(*sockp, FIONBIO, (unsigned long *) &dontblock);
+		(void)ioctlsocket(sockp->socket, FIONBIO, (unsigned long *) &dontblock);
 #else
-		(void)ioctl(*sockp, FIONBIO, (char *) &dontblock);
+		(void)ioctl(*sockp->socket, FIONBIO, (char *) &dontblock);
 #endif
 		cu->cu_closeit = TRUE;
 	} else {
@@ -238,27 +231,23 @@ fooy:
 }
 
 CLIENT *
-clntudp_create(raddr, program, version, wait, sockp)
-	struct sockaddr_in *raddr;
-	u_long program;
-	u_long version;
-	struct timeval wait;
-	register int *sockp;
+clntudp_create(struct sockaddr_in* raddr, u_long program, u_long version, struct timeval wait, socket_t* sockp)
 {
-
 	return(clntudp_bufcreate(raddr, program, version, wait, sockp,
 	    UDPMSGSIZE, UDPMSGSIZE));
 }
 
+/**
+ * \param cl client handle
+ * \param proc procedure number
+ * \param xargs xdr routine for args
+ * \param argsp pointer to args
+ * \param xresults xdr routine for results
+ * \param resultsp pointer to results
+ * \param utimeout seconds to wait before giving up
+ */
 static enum clnt_stat
-clntudp_call(cl, proc, xargs, argsp, xresults, resultsp, utimeout)
-	register CLIENT	*cl;		/* client handle */
-	u_long		proc;		/* procedure number */
-	xdrproc_t	xargs;		/* xdr routine for args */
-	caddr_t		argsp;		/* pointer to args */
-	xdrproc_t	xresults;	/* xdr routine for results */
-	caddr_t		resultsp;	/* pointer to results */
-	struct timeval	utimeout;	/* seconds to wait before giving up */
+clntudp_call(register CLIENT* cl, uint64_t proc, xdrproc_t xargs, caddr_t argsp, xdrproc_t xresults, caddr_t resultsp, struct timeval utimeout)
 {
 	register struct cu_data *cu = (struct cu_data *)cl->cl_private;
 	register XDR *xdrs;
@@ -305,7 +294,7 @@ call_again:
 	outlen = (int)XDR_GETPOS(xdrs);
 
 send_again:
-	if (sendto(cu->cu_sock, cu->cu_outbuf, outlen, 0,
+	if (sendto(cu->cu_sock.socket, cu->cu_outbuf, outlen, 0,
 	    (struct sockaddr *)&(cu->cu_raddr), cu->cu_rlen)
 	    != outlen) {
 #ifdef _WIN32
@@ -332,7 +321,7 @@ send_again:
 	reply_msg.acpted_rply.ar_results.proc = xresults;
 #ifdef FD_SETSIZE
 	FD_ZERO(&mask);
-	FD_SET(cu->cu_sock, &mask);
+	FD_SET(cu->cu_sock.socket, &mask);
 #else
 	mask = 1 << cu->cu_sock;
 #endif /* def FD_SETSIZE */
@@ -377,7 +366,7 @@ send_again:
 		}
 		do {
 			fromlen = sizeof(struct sockaddr);
-			inlen = recvfrom(cu->cu_sock, cu->cu_inbuf,
+			inlen = recvfrom(cu->cu_sock.socket, cu->cu_inbuf,
 				(int) cu->cu_recvsz, 0,
 				(struct sockaddr *)&from, &fromlen);
 #ifdef _WIN32
@@ -398,7 +387,7 @@ send_again:
 		if (inlen < sizeof(u_long))
 			continue;
 		/* see if reply transaction id matches sent id */
-		if (*((u_long *)(cu->cu_inbuf)) != *((u_long *)(cu->cu_outbuf)))
+		if (*((u_long*)(cu->cu_inbuf)) != *((u_long*)(cu->cu_outbuf)))
 			continue;
 		/* we now assume we have the proper reply */
 		break;
@@ -506,9 +495,9 @@ clntudp_destroy(cl)
 
 	if (cu->cu_closeit) {
 #ifdef _WIN32
-		(void)closesocket(cu->cu_sock);
+		(void)closesocket(cu->cu_sock.socket);
 #else
-		(void)close(cu->cu_sock);
+		(void)close(cu->cu_sock->socket);
 #endif
 	}
 	XDR_DESTROY(&(cu->cu_outxdrs));

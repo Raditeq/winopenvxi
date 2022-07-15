@@ -131,17 +131,17 @@ typedef	bool_t (*xdrproc_t)();
  * an operations vector for the paticular implementation (e.g. see xdr_mem.c),
  * and two private fields for the use of the particular impelementation.
  */
-typedef struct {
+typedef struct _XDR_T {
 	enum xdr_op	x_op;		/* operation; fast additional param */
 	struct xdr_ops {
-		bool_t	(*x_getlong)();	/* get a long from underlying stream */
-		bool_t	(*x_putlong)();	/* put a long to " */
-		bool_t	(*x_getbytes)();/* get some bytes from " */
-		bool_t	(*x_putbytes)();/* put some bytes to " */
-		u_int	(*x_getpostn)();/* returns bytes off from beginning */
-		bool_t  (*x_setpostn)();/* lets you reposition the stream */
-		long *	(*x_inline)();	/* buf quick ptr to buffered data */
-		void	(*x_destroy)();	/* free privates of this xdr_stream */
+		bool_t	(*x_getlong)(struct _XDR_T* xdrs, register long* lp);	/* get a long from underlying stream */
+		bool_t	(*x_putlong)(struct _XDR_T* xdrs, long* lp);	/* put a long to " */
+		bool_t	(*x_getbytes)(struct _XDR_T* xdrs, caddr_t addr, size_t len);/* get some bytes from " */
+		bool_t	(*x_putbytes)(struct _XDR_T* xdrs, caddr_t addr, size_t len);/* put some bytes to " */
+		size_t	(*x_getpostn)(struct _XDR_T* xdrs);/* returns bytes off from beginning */
+		bool_t  (*x_setpostn)(struct _XDR_T* xdrs, size_t pos);/* lets you reposition the stream */
+		long *	(*x_inline)(struct _XDR_T* xdrs, size_t len);	/* buf quick ptr to buffered data */
+		void	(*x_destroy)(struct _XDR_T* xdrs);	/* free privates of this xdr_stream */
 	} *x_ops;
 	caddr_t 	x_public;	/* users' data */
 	caddr_t		x_private;	/* pointer to private data */
@@ -249,30 +249,30 @@ struct xdr_discrim {
 /*
  * These are the "generic" xdr routines.
  */
-DllExport bool_t	xdr_void();
-DllExport bool_t	xdr_int();
-DllExport bool_t	xdr_u_int();
-DllExport bool_t	xdr_long();
-DllExport bool_t	xdr_u_long();
-DllExport bool_t	xdr_short();
-DllExport bool_t	xdr_u_short();
-DllExport bool_t	xdr_bool();
-DllExport bool_t	xdr_enum();
-DllExport bool_t	xdr_array();
-DllExport bool_t	xdr_bytes();
-DllExport bool_t	xdr_opaque();
-DllExport bool_t	xdr_string();
-DllExport bool_t	xdr_union();
-DllExport bool_t	xdr_char();
-DllExport bool_t	xdr_u_char();
-DllExport bool_t	xdr_vector();
-DllExport bool_t	xdr_float();
-DllExport bool_t	xdr_double();
-DllExport bool_t	xdr_reference();
-DllExport bool_t	xdr_pointer();
-DllExport bool_t	xdr_wrapstring();
-DllExport void      xdr_free();
-DllExport bool_t    xdr_strarray();
+DllExport bool_t xdr_void(XDR* xdrs);
+DllExport bool_t xdr_int(XDR* xdrs, int* ip);
+DllExport bool_t xdr_u_int(XDR* xdrs, u_int* up);
+DllExport bool_t xdr_long(register XDR* xdrs, long* lp);
+DllExport bool_t xdr_u_long(register XDR* xdrs, u_long* ulp);
+DllExport bool_t xdr_short(register XDR* xdrs, short* sp);
+DllExport bool_t xdr_u_short(register XDR* xdrs, u_short* usp);
+DllExport bool_t xdr_bool(register XDR* xdrs, bool_t* bp);
+DllExport bool_t xdr_enum(XDR* xdrs, enum_t* ep);
+DllExport bool_t xdr_array(register XDR* xdrs, caddr_t* addrp, u_int* sizep, u_int maxsize, u_int elsize, xdrproc_t elproc);
+DllExport bool_t xdr_bytes(register XDR* xdrs, char** cpp, register size_t* sizep, size_t  maxsize);
+DllExport bool_t xdr_opaque(register XDR* xdrs, const caddr_t cp, register size_t cnt);
+DllExport bool_t xdr_string(register XDR* xdrs, char** cpp, u_int maxsize);
+DllExport bool_t xdr_union(register XDR* xdrs, enum_t* dscmp, char* unp, struct xdr_discrim* choices, xdrproc_t  dfault);
+DllExport bool_t xdr_char(XDR* xdrs, char* cp);
+DllExport bool_t xdr_u_char(XDR* xdrs, unsigned char* cp);
+DllExport bool_t xdr_vector(register XDR* xdrs, register char* basep, register u_int nelem, register u_int elemsize, register xdrproc_t xdr_elem);
+DllExport bool_t xdr_float(register XDR* xdrs, register float* fp);
+DllExport bool_t xdr_double(register XDR* xdrs, double* dp);
+DllExport bool_t xdr_reference(register XDR* xdrs, caddr_t* pp, u_int size, xdrproc_t proc);
+DllExport bool_t xdr_pointer(register XDR* xdrs, char** objpp, u_int obj_size, xdrproc_t xdr_obj);
+DllExport bool_t xdr_wrapstring(XDR* xdrs, char** cpp);
+DllExport void xdr_free(xdrproc_t proc, char* objp);
+DllExport bool_t xdr_strarray();
 
 /*
  * Common opaque bytes objects used by many rpc protocols;
@@ -280,21 +280,21 @@ DllExport bool_t    xdr_strarray();
  */
 #define MAX_NETOBJ_SZ 1024 
 struct netobj {
-	u_int	n_len;
+	size_t n_len;
 	char	*n_bytes;
 };
 typedef struct netobj netobj;
-DllExport bool_t   xdr_netobj();
+DllExport bool_t xdr_netobj(XDR* xdrs, struct netobj* np);
 
 /*
  * These are the public routines for the various implementations of
  * xdr streams.
  */
-DllExport void   xdrmem_create();		/* XDR using memory buffers */
-DllExport void   xdrstdio_create();	/* XDR using stdio library */
-DllExport void   xdrrec_create();		/* XDR pseudo records for tcp */
-DllExport bool_t xdrrec_endofrecord();	/* make end of xdr record */
-DllExport bool_t xdrrec_skiprecord();	/* move to beginning of next record */
-DllExport bool_t xdrrec_eof();		/* true if no more input */
+DllExport void xdrmem_create(register XDR* xdrs, caddr_t addr, u_int size, enum xdr_op op);		/* XDR using memory buffers */
+DllExport void xdrstdio_create(register XDR* xdrs, FILE* file, enum xdr_op op);	/* XDR using stdio library */
+DllExport void xdrrec_create(register XDR* xdrs, register u_int sendsize, register u_int recvsize, caddr_t tcp_handle, int (*readit)(), int (*writeit)());		/* XDR pseudo records for tcp */
+DllExport bool_t xdrrec_endofrecord(XDR* xdrs, bool_t sendnow);	/* make end of xdr record */
+DllExport bool_t xdrrec_skiprecord(XDR* xdrs);	/* move to beginning of next record */
+DllExport bool_t xdrrec_eof(XDR* xdrs);		/* true if no more input */
 
 #endif /* __XDR_HEADER__ */

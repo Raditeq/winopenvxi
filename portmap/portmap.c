@@ -73,12 +73,13 @@ static	char sccsid[] = "@(#)portmap.c 1.2 85/03/13 Copyr 1984 Sun Micro";
  * Mountain View, California  94043
  */
 
-#include <rpc/rpc.h>
-#include <rpc/pmap_pro.h>
+#include <all_oncrpc.h>
 #include <stdio.h>
+//#include <rpc/Pmap_pro.h>
+//#include <rpc/Rpc.h>
 
-int reg_service();
-static callit();
+void reg_service(struct svc_req*, SVCXPRT*);
+static void callit(struct svc_req*, SVCXPRT*);
 
 #if defined(DEBUG) || defined(_DEBUG)
 #define	syslog(e, s)	fprintf(stderr, (s))
@@ -87,16 +88,16 @@ static int debug = 1;
 static int debug = 0;
 #endif
 
-portmap_main()
+int portmap_main()
 {
 	SVCXPRT *xprt;
-	int sock, pid, t;
+	socket_t sock;
 	struct sockaddr_in addr;
 	int len = sizeof(struct sockaddr_in);
 
 #if 0
 	if (!debug) {
-		pid = daemon(0,0);	/* from libutil */
+		int pid = daemon(0,0);	/* from libutil */
 		if (pid < 0) {
 			perror("portmap: fork");
 			exit(1);
@@ -112,7 +113,7 @@ portmap_main()
 	}
 	
 
-	if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
+	if ((sock.socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
 		fprintf(stderr, "cannot create socket\n");
 		exit(1);
 	}
@@ -120,7 +121,7 @@ portmap_main()
 	addr.sin_addr.s_addr = 0;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(PMAPPORT);
-	if (bind(sock, (struct sockaddr *)&addr, len) != 0) {
+	if (bind(sock.socket, (struct sockaddr *)&addr, len) != 0) {
 		fprintf(stderr, "cannot bind\n");
 		exit(1);
 	}
@@ -130,11 +131,11 @@ portmap_main()
 		exit(1);
 	}
 
-	if ((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+	if ((sock.socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET) {
 		fprintf(stderr, "cannot create socket\n");
 		exit(1);
 	}
-	if (bind(sock, (struct sockaddr *)&addr, len) != 0) {
+	if (bind(sock.socket, (struct sockaddr *)&addr, len) != 0) {
 		fprintf(stderr, "cannot bind\n");
 		exit(1);
 	}
@@ -155,9 +156,7 @@ portmap_main()
 struct pmaplist *pmaplist;
 
 static struct pmaplist *
-find_service(prog, vers, prot)
-	u_long prog;
-	u_long vers;
+find_service(u_long prog, u_long vers, u_long prot)
 {
 	register struct pmaplist *hit = NULL;
 	register struct pmaplist *pml;
@@ -174,12 +173,7 @@ find_service(prog, vers, prot)
 	return (hit);
 }
 
-/* 
- * 1 OK, 0 not
- */
-reg_service(rqstp, xprt)
-	struct svc_req *rqstp;
-	SVCXPRT *xprt;
+void reg_service(struct svc_req* rqstp, SVCXPRT* xprt)
 {
 	struct pmap reg;
 	struct pmaplist *pml, *prevpml, *fnd;
@@ -226,7 +220,7 @@ reg_service(rqstp, xprt)
 				 * add to list
 				 */
 				pml = (struct pmaplist *)
-				    malloc((u_int)sizeof(struct pmaplist));
+				    malloc(sizeof(struct pmaplist));
 				pml->pml_map = reg;
 				pml->pml_next = pmaplist;
 				pmaplist = pml;
@@ -334,31 +328,27 @@ reg_service(rqstp, xprt)
 #define ARGSIZE 9000
 
 typedef struct encap_parms {
-	u_long arglen;
+	size_t arglen;
 	char *args;
 } encap_parms_t;
 
 static bool_t
-xdr_encap_parms(xdrs, epp)
-	XDR *xdrs;
-	struct encap_parms *epp;
+xdr_encap_parms(XDR* xdrs, struct encap_parms* epp)
 {
 
 	return (xdr_bytes(xdrs, &(epp->args), &(epp->arglen), ARGSIZE));
 }
 
-typedef struct rmtcallargs {
+typedef struct pmaprmtcallargs {
 	u_long	rmt_prog;
 	u_long	rmt_vers;
 	u_long	rmt_port;
 	u_long	rmt_proc;
 	struct encap_parms rmt_args;
-} rmtcallargs_t;
+} pmaprmtcallargs_t;
 
 static bool_t
-xdr_rmtcall_args(xdrs, cap)
-	register XDR *xdrs;
-	register struct rmtcallargs *cap;
+pmap_xdr_rmtcall_args(register XDR* xdrs, register struct pmaprmtcallargs* cap)
 {
 
 	/* does not get a port number */
@@ -371,9 +361,7 @@ xdr_rmtcall_args(xdrs, cap)
 }
 
 static bool_t
-xdr_rmtcall_result(xdrs, cap)
-	register XDR *xdrs;
-	register struct rmtcallargs *cap;
+xdr_rmtcall_result(register XDR* xdrs, register struct pmaprmtcallargs* cap)
 {
 	if (xdr_u_long(xdrs, &(cap->rmt_port)))
 		return (xdr_encap_parms(xdrs, &(cap->rmt_args)));
@@ -385,11 +373,8 @@ xdr_rmtcall_result(xdrs, cap)
  * The arglen must already be set!!
  */
 static bool_t
-xdr_opaque_parms(xdrs, cap)
-	XDR *xdrs;
-	struct rmtcallargs *cap;
+xdr_opaque_parms(XDR* xdrs, struct pmaprmtcallargs* cap)
 {
-
 	return (xdr_opaque(xdrs, cap->rmt_args.args, cap->rmt_args.arglen));
 }
 
@@ -398,11 +383,9 @@ xdr_opaque_parms(xdrs, cap)
  * and then calls xdr_opaque_parms.
  */
 static bool_t
-xdr_len_opaque_parms(xdrs, cap)
-	register XDR *xdrs;
-	struct rmtcallargs *cap;
+xdr_len_opaque_parms(register XDR* xdrs, struct pmaprmtcallargs* cap)
 {
-	register u_int beginpos, lowpos, highpos, currpos, pos;
+	register size_t beginpos, lowpos, highpos, currpos, pos;
 
 	beginpos = lowpos = pos = xdr_getpos(xdrs);
 	highpos = lowpos + ARGSIZE;
@@ -427,32 +410,27 @@ xdr_len_opaque_parms(xdrs, cap)
  * a machine should shut-up instead of complain, less the requestor be
  * overrun with complaints at the expense of not hearing a valid reply ...
  */
-static
-callit(rqstp, xprt)
-	struct svc_req *rqstp;
-	SVCXPRT *xprt;
+static void callit(struct svc_req* rqstp, SVCXPRT* xprt)
 {
 	char buf[2000];
-	struct rmtcallargs a;
+	struct pmaprmtcallargs a;
 	struct pmaplist *pml;
-	u_short port;
 	struct sockaddr_in me;
-	int socket = -1;
-	CLIENT *client;
+	socket_t socket;
 	struct authunix_parms *au = (struct authunix_parms *)rqstp->rq_clntcred;
 	struct timeval timeout;
 
 	timeout.tv_sec = 5;
 	timeout.tv_usec = 0;
 	a.rmt_args.args = buf;
-	if (!svc_getargs(xprt, xdr_rmtcall_args, &a))
+	if (!svc_getargs(xprt, pmap_xdr_rmtcall_args, &a))
 	    return;
 	if ((pml = find_service(a.rmt_prog, a.rmt_vers, IPPROTO_UDP)) == NULL)
 	    return;
-	port = pml->pml_map.pm_port;
+	const u_short port = (u_short)pml->pml_map.pm_port;
 	get_myaddress(&me);
 	me.sin_port = htons(port);
-	client = clntudp_create(&me, a.rmt_prog, a.rmt_vers, timeout, &socket);
+	CLIENT* client = clntudp_create(&me, a.rmt_prog, a.rmt_vers, timeout, &socket);
 	if (client != (CLIENT *)NULL) {
 		if (rqstp->rq_cred.oa_flavor == AUTH_UNIX) {
 			client->cl_auth = authunix_create(au->aup_machname,
@@ -461,12 +439,12 @@ callit(rqstp, xprt)
 		a.rmt_port = (u_long)port;
 		if (clnt_call(client, a.rmt_proc, xdr_opaque_parms, &a,
 		    xdr_len_opaque_parms, &a, timeout) == RPC_SUCCESS) {
-			svc_sendreply(xprt, xdr_rmtcall_result, &a);
+			svc_sendreply(xprt, xdr_rmtcall_result, (caddr_t)&a);
 		}
 		AUTH_DESTROY(client->cl_auth);
 		clnt_destroy(client);
 	}
-	(void)closesocket(socket);
+	(void)closesocket(socket.socket);
 }
 
 

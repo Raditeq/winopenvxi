@@ -230,8 +230,8 @@ typedef struct CLIENT CLIENT;
  * CLNT_DESTROY(rh);
  * 	CLIENT *rh;
  */
-#define	CLNT_DESTROY(rh)	((*(rh)->cl_ops->cl_destroy)(rh))
-DllExport void clnt_destroy();
+#define	CLNT_DESTROY(client)	((*(client)->cl_ops->cl_destroy)(client))
+DllExport void clnt_destroy(CLIENT* client);
 
 /*
  * RPCTEST is a test program which is accessable on every rpc
@@ -263,18 +263,18 @@ DllExport void clnt_destroy();
  *	u_long prog;
  *	u_long vers;
  */
-DllExport CLIENT *clntraw_create();
+DllExport CLIENT *clntraw_create(u_long prog, u_long vers);
 
 
 /*
  * Generic client creation routine. Supported protocols are "udp" and "tcp"
  */
 DllExport CLIENT *
-clnt_create(/*host, prog, vers, prot*/); /*
-	char *host; 	-- hostname
+clnt_create(const char* hostname, u_long prog, u_long vers, const char* proto); /*
+	const char *host; 	-- hostname
 	u_long prog;	-- program number
 	u_long vers;	-- version number
-	char *prot;	-- protocol
+	const char *prot;	-- protocol
 */
 
 
@@ -291,7 +291,8 @@ clnt_create(/*host, prog, vers, prot*/); /*
  *	u_int sendsz;
  *	u_int recvsz;
  */
-DllExport CLIENT *clnttcp_create();
+DllExport CLIENT*
+clnttcp_create(struct sockaddr_in* raddr, const u_long prog, const u_long vers, socket_t* sockp, const u_int sendsz, const u_int recvsz);
 
 /*
  * UDP based rpc.
@@ -314,25 +315,27 @@ DllExport CLIENT *clnttcp_create();
  *	u_int sendsz;
  *	u_int recvsz;
  */
-DllExport CLIENT *clntudp_create();
-DllExport CLIENT *clntudp_bufcreate();
+DllExport CLIENT* clntudp_create(struct sockaddr_in* raddr, u_long program, u_long version,
+	struct timeval wait, socket_t* sockp);
+DllExport CLIENT* clntudp_bufcreate(struct sockaddr_in* raddr, u_long program, u_long version,
+	struct timeval  wait, socket_t* sockp, u_int sendsz, u_int recvsz);
 
 /*
  * Print why creation failed
  */
-DllExport void clnt_pcreateerror(/* char *msg */);	/* stderr */
-DllExport char *clnt_spcreateerror(/* char *msg */);	/* string */
+DllExport void clnt_pcreateerror(const char* s);	/* stderr */
+DllExport const char* clnt_spcreateerror(const char* s);
 
 /*
  * Like clnt_perror(), but is more verbose in its output
  */ 
-DllExport void clnt_perrno(/* enum clnt_stat num */);	/* stderr */
+DllExport void clnt_perrno(enum clnt_stat num);	/* stderr */
 
 /*
  * Print an English error message, given the client error code
  */
-DllExport void clnt_perror(/* CLIENT *clnt, char *msg */); 	/* stderr */
-DllExport char *clnt_sperror(/* CLIENT *clnt, char *msg */);	/* string */
+DllExport void clnt_perror(CLIENT* client, char* msg); 	/* stderr */
+DllExport const char *clnt_sperror(CLIENT* client, char* msg);	/* string */
 
 /* 
  * If a creation fails, the following allows the user to figure out why.
@@ -360,9 +363,7 @@ DllExport struct rpc_createerr rpc_createerr;
 /*
  * Copy error message to buffer.
  */
-DllExport char *clnt_sperrno(/* enum clnt_stat num */);	/* string */
-
-
+DllExport const char *clnt_sperrno(enum clnt_stat num);	/* string */
 
 #define UDPMSGSIZE	8800	/* rpc imposed limit on udp msg size */
 #define RPCSMALLMSGSIZE	400	/* a more reasonable packet size */

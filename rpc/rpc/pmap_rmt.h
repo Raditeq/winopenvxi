@@ -69,13 +69,13 @@ struct rmtcallargs {
 	xdrproc_t xdr_args;
 };
 
-bool_t xdr_rmtcall_args();
+bool_t xdr_rmtcall_args(register XDR* xdrs, register struct rmtcallargs* cap);
 
 struct rmtcallres {
 	u_long *port_ptr;
-	u_long resultslen;
+	size_t resultslen;
 	caddr_t results_ptr;
 	xdrproc_t xdr_results;
 };
 
-bool_t xdr_rmtcallres();
+bool_t xdr_rmtcallres(register XDR* xdrs, register struct rmtcallres* crp);

@@ -93,25 +93,39 @@ static	char *index();
 #endif
 
 #ifdef _WIN32
-static char RPCDB[1024];
+#define RPCDB_BUFFER_SIZE (1024)
+static char RPCDB[RPCDB_BUFFER_SIZE];
 #else
 static char RPCDB[] = "/etc/rpc";
 #endif
 
 void
-setrpcent(f)
-	int f;
+setrpcent(int f)
 {
 	register struct rpcdata *d = _rpcdata();
 
-	if (d == 0)
+	if (d == NULL) {
 		return;
-	if (d->rpcf == NULL)
+	}
+	if (d->rpcf == NULL) {
+#ifdef _WIN32
+		const int error = fopen_s(&d->rpcf, RPCDB, "r");
+		if (error != 0)
+		{
+			errno = error;
+			d->rpcf = NULL;
+			return;
+		}
+#else
 		d->rpcf = fopen(RPCDB, "r");
-	else
+#endif
+	}
+	else {
 		rewind(d->rpcf);
-	if (d->current)
+	}
+	if (d->current) {
 		free(d->current);
+	}
 	d->current = NULL;
 	d->stayopen |= f;
 }
@@ -133,18 +147,31 @@ endrpcent()
 	}
 }
 
-struct rpcent *
-getrpcent()
+struct rpcent *getrpcent()
 {
 	char *key = NULL, *val = NULL;
 	register struct rpcdata *d = _rpcdata();
 
-	if (d == 0)
+	if (d == 0) {
 		return(NULL);
-	if (d->rpcf == NULL && (d->rpcf = fopen(RPCDB, "r")) == NULL)
+	}
+	if (d->rpcf == NULL) {
+#ifdef _WIN32
+			const int error = fopen_s(&d->rpcf, RPCDB, "r");
+		if (error != 0) {
+			errno = error;
+			d->rpcf = NULL;
+		}
+#else
+		d->rpcf = fopen(RPCDB, "r");
+#endif
+	}
+	if (d->rpcf == NULL) {
 		return (NULL);
-    if (fgets(d->line, BUFSIZ, d->rpcf) == NULL)
+	}
+    if (fgets(d->line, BUFSIZ, d->rpcf) == NULL) {
 		return (NULL);
+	}
 	return interpret(d->line, strlen(d->line));
 }
 
@@ -156,9 +183,14 @@ interpret(val, len)
 	char *p;
 	register char *cp, **q;
 
-	if (d == 0)
+	if (d == 0) {
 		return NULL;
+	}
+#ifdef _WIN32
+	strncpy_s(d->line, BUFSIZ, val, len);
+#else
 	strncpy(d->line, val, len);
+#endif
 	p = d->line;
 	d->line[len] = '\n';
 	if (*p == '#')
@@ -221,11 +253,19 @@ _rpcdata()
 	register struct rpcdata *d = rpcdata;
 
 #ifdef _WIN32
-	char *str;
-
-	if ((RPCDB[0] == '\0') && (str = getenv("SystemRoot"))) {
-		strcpy(RPCDB, str);
-		strcat(RPCDB, "\\system32\\drivers\\etc\\rpc");
+	if (RPCDB[0] == '\0') {
+		size_t requiredSize = 0;
+		int error = getenv_s(&requiredSize, RPCDB, RPCDB_BUFFER_SIZE, "SystemRoot");
+#ifdef _DEBUG
+		if (requiredSize > RPCDB_BUFFER_SIZE) {
+			MessageBox(NULL, L"Could not get 'SystemRoot' env variable because the buffer was too small", L"Error finding rpc database", MB_OK);
+		}
+#endif
+		if (error != 0) {
+			strcat_s(RPCDB, RPCDB_BUFFER_SIZE, "\\system32\\drivers\\etc\\rpc");
+		} else {
+			errno = error;
+		}
 	}
 #endif
 	
@@ -237,8 +277,7 @@ _rpcdata()
 }
 
 struct rpcent *
-getrpcbynumber(number)
-	register int number;
+getrpcbynumber(register int number)
 {
 	register struct rpcdata *d = _rpcdata();
 	register struct rpcent *p;
@@ -256,8 +295,7 @@ getrpcbynumber(number)
 }
 
 struct rpcent *
-getrpcbyname(name)
-	char *name;
+getrpcbyname(const char* name)
 {
 	struct rpcent *rpc;
 	char **rp;

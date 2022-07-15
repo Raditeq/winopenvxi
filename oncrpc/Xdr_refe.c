@@ -70,23 +70,30 @@ static char sccsid[] = "@(#)xdr_reference.c 1.11 87/08/11 SMI";
 
 #include "all_oncrpc.h"
 
-#define LASTUNSIGNED	((u_int)0-1)
+#define LASTUNSIGNED (~(u_int)0)
 
 /*
- * XDR an indirect pointer
+ * 
+ * 
+ */
+
+/**
+ * \brief'XDR an indirect pointer
  * xdr_reference is for recursively translating a structure that is
  * referenced by a pointer inside the structure that is currently being
  * translated.  pp references a pointer to storage. If *pp is null
  * the  necessary storage is allocated.
  * size is the sizeof the referneced structure.
  * proc is the routine to handle the referenced structure.
+ *
+ * \param xdrs The xdr handle
+ * \param pp the pointer to work on
+ * \param size size of the object pointed to add
+ * \param proc xdr routine to handle the object
+ * \return a boolean indicating if the operation went correctly
  */
 bool_t
-xdr_reference(xdrs, pp, size, proc)
-	register XDR *xdrs;
-	caddr_t *pp;		/* the pointer to work on */
-	u_int size;		/* size of the object pointed to */
-	xdrproc_t proc;		/* xdr routine to handle the object */
+xdr_reference(register XDR* xdrs, caddr_t* pp, u_int size, xdrproc_t proc)
 {
 	register caddr_t loc = *pp;
 	register bool_t stat;
@@ -111,7 +118,7 @@ xdr_reference(xdrs, pp, size, proc)
 			break;
 	}
 
-	stat = (*proc)(xdrs, loc, LASTUNSIGNED);
+	stat = (*proc)(xdrs, loc, (LASTUNSIGNED));
 
 	if (xdrs->x_op == XDR_FREE) {
 		mem_free(loc, size);
@@ -141,11 +148,7 @@ xdr_reference(xdrs, pp, size, proc)
  *
  */
 bool_t
-xdr_pointer(xdrs,objpp,obj_size,xdr_obj)
-	register XDR *xdrs;
-	char **objpp;
-	u_int obj_size;
-	xdrproc_t xdr_obj;
+xdr_pointer(register XDR* xdrs, char** objpp, u_int obj_size, xdrproc_t xdr_obj)
 {
 
 	bool_t more_data;

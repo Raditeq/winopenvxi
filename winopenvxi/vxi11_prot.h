@@ -61,7 +61,7 @@ struct Create_LinkParms {
 	long clientId;
 	bool_t lockDevice;
 	u_long lock_timeout;
-	char *device;
+	const char *device;
 };
 typedef struct Create_LinkParms Create_LinkParms;
 #ifdef __cplusplus
@@ -95,7 +95,7 @@ struct Device_WriteParms {
 	u_long lock_timeout;
 	Device_Flags flags;
 	struct {
-		u_int data_len;
+		size_t data_len;
 		char *data_val;
 	} data;
 };
@@ -145,7 +145,7 @@ struct Device_ReadResp {
 	Device_ErrorCode error;
 	long reason;
 	struct {
-		u_int data_len;
+		size_t data_len;
 		char *data_val;
 	} data;
 };
@@ -210,7 +210,7 @@ struct Device_EnableSrqParms {
 	Device_Link lid;
 	bool_t enable;
 	struct {
-		u_int handle_len;
+		size_t handle_len;
 		char *handle_val;
 	} handle;
 };
@@ -248,7 +248,7 @@ struct Device_DocmdParms {
 	bool_t network_order;
 	long datasize;
 	struct {
-		u_int data_in_len;
+		size_t data_in_len;
 		char *data_in_val;
 	} data_in;
 };
@@ -265,7 +265,7 @@ DllExport bool_t xdr_Device_DocmdParms();
 struct Device_DocmdResp {
 	Device_ErrorCode error;
 	struct {
-		u_int data_out_len;
+		size_t data_out_len;
 		char *data_out_val;
 	} data_out;
 };

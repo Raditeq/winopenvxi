@@ -67,16 +67,13 @@ static char sccsid[] = "@(#)pmap_rmt.c 1.21 87/08/27 Copyr 1984 Sun Micro";
  */
 
 #include "all_oncrpc.h"
+#include "pmap_tmt.h"
 
 #define MAX_BROADCAST_SIZE 1400
 
 #ifndef _WIN32
 extern int errno;
 #endif
-
-
-static struct timeval timeout = { 3, 0 };
-
 
 /*
  * pmapper remote-call-service interface.
@@ -86,22 +83,16 @@ static struct timeval timeout = { 3, 0 };
  * programs to do a lookup and call in one step.
 */
 enum clnt_stat
-pmap_rmtcall(addr, prog, vers, proc, xdrargs, argsp, xdrres, resp, tout, port_ptr)
-	struct sockaddr_in *addr;
-	u_long prog, vers, proc;
-	xdrproc_t xdrargs, xdrres;
-	caddr_t argsp, resp;
-	struct timeval tout;
-	u_long *port_ptr;
+pmap_rmtcall(struct sockaddr_in* addr, const u_long prog, const u_long vers, const u_long proc, xdrproc_t xdrargs, caddr_t argsp, xdrproc_t xdrres, caddr_t resp, const struct timeval tout, u_long* port_ptr)
 {
-	int socket = -1;
+	socket_t socket;
 	register CLIENT *client;
 	struct rmtcallargs a;
 	struct rmtcallres r;
 	enum clnt_stat stat;
 
 	addr->sin_port = htons(PMAPPORT);
-	client = clntudp_create(addr, PMAPPROG, PMAPVERS, timeout, &socket);
+	client = clntudp_create(addr, PMAPPROG, PMAPVERS, pmap_clientTimeout, &socket);
 	if (client != (CLIENT *)NULL) {
 		a.prog = prog;
 		a.vers = vers;
@@ -118,9 +109,9 @@ pmap_rmtcall(addr, prog, vers, proc, xdrargs, argsp, xdrres, resp, tout, port_pt
 		stat = RPC_FAILED;
 	}
 #ifdef _WIN32
-	(void)closesocket(socket);
+	(void)closesocket(socket.socket);
 #else
-	(void)close(socket);
+	(void)close(socket.socket);
 #endif
 	addr->sin_port = 0;
 	return (stat);
@@ -132,11 +123,9 @@ pmap_rmtcall(addr, prog, vers, proc, xdrargs, argsp, xdrres, resp, tout, port_pt
  * written for XDR_ENCODE direction only
  */
 bool_t
-xdr_rmtcall_args(xdrs, cap)
-	register XDR *xdrs;
-	register struct rmtcallargs *cap;
+xdr_rmtcall_args(register XDR* xdrs, register struct rmtcallargs* cap)
 {
-	u_int lenposition, argposition, position;
+	size_t lenposition, argposition, position;
 
 	if (xdr_u_long(xdrs, &(cap->prog)) &&
 	    xdr_u_long(xdrs, &(cap->vers)) &&
@@ -148,7 +137,7 @@ xdr_rmtcall_args(xdrs, cap)
 		if (! (*(cap->xdr_args))(xdrs, cap->args_ptr))
 		    return (FALSE);
 		position = XDR_GETPOS(xdrs);
-		cap->arglen = (u_long)position - (u_long)argposition;
+		cap->arglen = position - argposition;
 		XDR_SETPOS(xdrs, lenposition);
 		if (! xdr_u_long(xdrs, &(cap->arglen)))
 		    return (FALSE);
@@ -163,16 +152,14 @@ xdr_rmtcall_args(xdrs, cap)
  * written for XDR_DECODE direction only
  */
 bool_t
-xdr_rmtcallres(xdrs, crp)
-	register XDR *xdrs;
-	register struct rmtcallres *crp;
+xdr_rmtcallres(register XDR* xdrs, register struct rmtcallres* crp)
 {
 	caddr_t port_ptr;
 
 	port_ptr = (caddr_t)crp->port_ptr;
 	if (xdr_reference(xdrs, &port_ptr, sizeof (u_long),
-	    xdr_u_long) && xdr_u_long(xdrs, &crp->resultslen)) {
-		crp->port_ptr = (u_long *)port_ptr;
+	    xdr_u_long) && xdr_u_long(xdrs, (u_long *) &crp->resultslen)) {
+		crp->port_ptr = (u_long*)port_ptr;
 		return ((*(crp->xdr_results))(xdrs, crp->results_ptr));
 	}
 	return (FALSE);
@@ -185,11 +172,13 @@ xdr_rmtcallres(xdrs, crp)
  * routines which only support udp/ip .
  */
 
+/**
+ * \param addrs
+ * \param sock any valid socket will do
+ * \param buf why allocxate more when we can use existing...
+ */
 static int
-getbroadcastnets(addrs, sock, buf)
-	struct in_addr *addrs;
-	int sock;  /* any valid socket will do */
-	char *buf;  /* why allocxate more when we can use existing... */
+getbroadcastnets(struct in_addr* addrs, socket_t sock, char *buf)
 {
 #ifdef _WIN32
 	/* try to do a global broadcast, this is not a clean solution */
@@ -206,14 +195,14 @@ getbroadcastnets(addrs, sock, buf)
 
         ifc.ifc_len = UDPMSGSIZE;
         ifc.ifc_buf = buf;
-        if (ioctl(sock, SIOCGIFCONF, (char *)&ifc) < 0) {
+        if (ioctl(sock.socket, SIOCGIFCONF, (char *)&ifc) < 0) {
                 perror("broadcast: ioctl (get interface configuration)");
                 return (0);
         }
         ifr = ifc.ifc_req;
         for (i = 0, n = ifc.ifc_len/sizeof (struct ifreq); n > 0; n--, ifr++) {
                 ifreq = *ifr;
-                if (ioctl(sock, SIOCGIFFLAGS, (char *)&ifreq) < 0) {
+                if (ioctl(sock.socket, SIOCGIFFLAGS, (char *)&ifreq) < 0) {
                         perror("broadcast: ioctl (get interface flags)");
                         continue;
                 }
@@ -222,7 +211,7 @@ getbroadcastnets(addrs, sock, buf)
 		    ifr->ifr_addr.sa_family == AF_INET) {
 			sin = (struct sockaddr_in *)&ifr->ifr_addr;
 #ifdef SIOCGIFBRDADDR   /* 4.3BSD */
-			if (ioctl(sock, SIOCGIFBRDADDR, (char *)&ifreq) < 0) {
+			if (ioctl(sock.socket, SIOCGIFBRDADDR, (char *)&ifreq) < 0) {
 				addrs[i++] = inet_makeaddr(inet_netof
 			    (sin->sin_addr.s_addr), INADDR_ANY);
 			} else {
@@ -239,25 +228,28 @@ getbroadcastnets(addrs, sock, buf)
 #endif
 }
 
-typedef bool_t (*resultproc_t)();
-
+/**
+ * \brief Send a broadacst message on the local network.
+ * \param prog program number
+ * \param vers version number
+ * \param proc procedure number
+ * \param xargs xdr routine for args
+ * \param argsp pointer to args
+ * \param xresults xdr routine for results
+ * \param resultsp pointer to results
+ * \param eachresult call with each result obtained
+ * \return The status of the call. will return RPC_SUCCESS if everything went correctly
+ */
 enum clnt_stat
-clnt_broadcast(prog, vers, proc, xargs, argsp, xresults, resultsp, eachresult)
-	u_long		prog;		/* program number */
-	u_long		vers;		/* version number */
-	u_long		proc;		/* procedure number */
-	xdrproc_t	xargs;		/* xdr routine for args */
-	caddr_t		argsp;		/* pointer to args */
-	xdrproc_t	xresults;	/* xdr routine for results */
-	caddr_t		resultsp;	/* pointer to results */
-	resultproc_t	eachresult;	/* call with each result obtained */
+clnt_broadcast(u_long prog, u_long vers, u_long proc, xdrproc_t xargs, caddr_t argsp, xdrproc_t xresults, caddr_t resultsp, resultproc_t eachresult)
 {
 	enum clnt_stat stat;
 	AUTH *unix_auth = authunix_create_default();
 	XDR xdr_stream;
 	register XDR *xdrs = &xdr_stream;
-	int outlen, inlen, fromlen, nets;
-	register int sock;
+	size_t outlen, nets;
+	int inlen, fromlen;
+	socket_t sock;
 	int on = 1;
 #ifdef FD_SETSIZE
 	fd_set mask;
@@ -283,16 +275,16 @@ clnt_broadcast(prog, vers, proc, xargs, argsp, xresults, resultsp, eachresult)
 	 * preserialize the arguments into a send buffer.
 	 */
 #ifdef _WIN32
-	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
+	if ((sock.socket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
 #else
-	if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+	if ((sock.socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 #endif
 		perror("Cannot create socket for broadcast rpc");
 		stat = RPC_CANTSEND;
 		goto done_broad;
 	}
 #ifdef SO_BROADCAST
-	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const char*)&on, sizeof (int)) < 0) {
+	if (setsockopt(sock.socket, SOL_SOCKET, SO_BROADCAST, (const char*)&on, sizeof (int)) < 0) {
 		perror("Cannot set socket option SO_BROADCAST");
 		stat = RPC_CANTSEND;
 		goto done_broad;
@@ -300,7 +292,7 @@ clnt_broadcast(prog, vers, proc, xargs, argsp, xresults, resultsp, eachresult)
 #endif /* def SO_BROADCAST */
 #ifdef FD_SETSIZE
 	FD_ZERO(&mask);
-	FD_SET(sock, &mask);
+	FD_SET(sock.socket, &mask);
 #else
 	mask = (1 << sock);
 #endif /* def FD_SETSIZE */
@@ -311,7 +303,11 @@ clnt_broadcast(prog, vers, proc, xargs, argsp, xresults, resultsp, eachresult)
 	baddr.sin_addr.s_addr = htonl(INADDR_ANY);
 /*	baddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY); */
 	(void)gettimeofday(&t, (struct timezone *)0);
+#ifdef _WIN32
+	msg.rm_xid = xid = _getpid() ^ t.tv_sec ^ t.tv_usec;
+#else
 	msg.rm_xid = xid = getpid() ^ t.tv_sec ^ t.tv_usec;
+#endif
 	t.tv_usec = 0;
 	msg.rm_direction = CALL;
 	msg.rm_call.cb_rpcvers = RPC_MSG_VERSION;
@@ -342,7 +338,7 @@ clnt_broadcast(prog, vers, proc, xargs, argsp, xresults, resultsp, eachresult)
 	for (t.tv_sec = 4; t.tv_sec <= 14; t.tv_sec += 2) {
 		for (i = 0; i < nets; i++) {
 			baddr.sin_addr = addrs[i];
-			if (sendto(sock, outbuf, outlen, 0,
+			if (sendto(sock.socket, outbuf, outlen, 0,
 				(struct sockaddr *)&baddr,
 				sizeof (struct sockaddr)) != outlen) {
 				perror("Cannot send broadcast packet");
@@ -384,7 +380,7 @@ clnt_broadcast(prog, vers, proc, xargs, argsp, xresults, resultsp, eachresult)
 		}  /* end of select results switch */
 	try_again:
 		fromlen = sizeof(struct sockaddr);
-		inlen = recvfrom(sock, inbuf, UDPMSGSIZE, 0,
+		inlen = recvfrom(sock.socket, inbuf, UDPMSGSIZE, 0,
 			(struct sockaddr *)&raddr, &fromlen);
 		if (inlen < 0) {
 #ifdef _WIN32
@@ -438,9 +434,9 @@ clnt_broadcast(prog, vers, proc, xargs, argsp, xresults, resultsp, eachresult)
 	}
 done_broad:
 #ifdef _WIN32
-	(void)closesocket(sock);
+	(void)closesocket(sock.socket);
 #else
-	(void)close(sock);
+	(void)close(sock.socket);
 #endif
 	AUTH_DESTROY(unix_auth);
 	return (stat);

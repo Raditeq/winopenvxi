@@ -71,19 +71,22 @@
 #define DllImport	__declspec( dllimport )
 
 #include <stdlib.h>
-#include <windows.h>
+#include <Windows.h>
+#include <stdio.h>
 #include <winsock.h>
 #include <rpc/types.h>		/* some typedefs */
 #include <process.h>
 #include <rpc/bcopy.h>
+#include <rpc/xdr.h>
+#include <rpc/auth.h>
 
 #define WSAerrno (WSAGetLastError())
 #define gettimeofday(tv,tz) ((tv)->tv_sec = time(0), (tv)->tv_usec = 0)
 
 DllExport int rpc_nt_init(void);
 DllExport int rpc_nt_exit(void);
-DllExport void nt_rpc_report();
-DllExport int xdr_opaque_auth();
+DllExport void nt_rpc_report(LPCSTR lpszMsg);
+DllExport int xdr_opaque_auth(register XDR*, register struct opaque_auth*);
 
 #else  /* not WIN32 */ 
 #define DllExport	extern

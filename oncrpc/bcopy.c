@@ -37,16 +37,14 @@
 #include "all_oncrpc.h"
 
 /*
- *  bcopy(char *s1, char *s2, int len) --
+ *  bcopy(const char* from, char* to, int len) --
  *      Copies len bytes from s1 to s2
  */
 void
-bcopy(s1, s2, len)
-	char *s1, *s2;
-	int len;
+bcopy(const char* from, char* to, int len)
 {
 	for(; len > 0; len--)
-		*s2++ = *s1++;
+		*to++ = *from++;
 }
 
 /*

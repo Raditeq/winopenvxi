@@ -73,26 +73,26 @@ extern char *sprintf();
 #endif
 static char *auth_errmsg();
 
-extern char *strcpy();
+//extern char *strcpy();
 
-static char *buf;
+static char *buf = NULL;
+#define BUFFER_SIZE (256)
 
 static char *
 _buf()
 {
 
-	if (buf == 0)
-		buf = (char *)malloc(256);
+	if (buf == NULL) {
+		buf = (char*)malloc(BUFFER_SIZE);
+	}
 	return (buf);
 }
 
 /*
  * Print reply error info
  */
-char *
-clnt_sperror(rpch, s)
-	CLIENT *rpch;
-	char *s;
+const char *
+clnt_sperror(CLIENT* client, char* msg)
 {
 	struct rpc_err e;
 	void clnt_perrno();
@@ -100,14 +100,23 @@ clnt_sperror(rpch, s)
 	char *str = _buf();
 	char *strstart = str;
 
-	if (str == 0)
+	if (str == 0) {
 		return (0);
-	CLNT_GETERR(rpch, &e);
+	}
+	CLNT_GETERR(client, &e);
 
-	(void) sprintf(str, "%s: ", s);
+#ifdef _WIN32
+	sprintf_s(str, BUFFER_SIZE, "%s: ", msg);
+#else
+	(void) sprintf(str, "%s: ", msg);
+#endif
 	str += strlen(str);
 
+#ifdef _WIN32
+	strcpy_s(str, BUFFER_SIZE, clnt_sperrno(e.re_status));
+#else
 	(void) strcpy(str, clnt_sperrno(e.re_status));
+#endif
 	str += strlen(str);
 
 	switch (e.re_status) {
@@ -129,72 +138,111 @@ clnt_sperror(rpch, s)
 	case RPC_CANTSEND:
 	case RPC_CANTRECV:
 #ifdef _WIN32
-		if (e.re_errno < sys_nerr)
-#endif
-			(void) sprintf(str, "; errno = %s",
-			    sys_errlist[e.re_errno]);
-#ifdef _WIN32
-		else
-			(void) sprintf(str, "Error %d, ", e.re_errno);
+		; //empty statement because declaration is not allowed after a label
+		char errorBuffer[BUFFER_SIZE];
+		if (strerror_s(errorBuffer, BUFFER_SIZE, e.re_errno) == 0) {
+			sprintf_s(str,  BUFFER_SIZE, "; errno = %s",
+				errorBuffer);
+		}
+		else {
+			(void)sprintf_s(str, BUFFER_SIZE, "Error %d, ", e.re_errno);
+		}
+#else
+		(void)sprintf(str, "; errno = %s",
+			sys_errlist[e.re_errno]);
 #endif
 		str += strlen(str);
 		break;
 
 	case RPC_VERSMISMATCH:
+#ifdef _WIN32
+		 sprintf_s(str, BUFFER_SIZE,
+			"; low version = %lu, high version = %lu",
+			e.re_vers.low, e.re_vers.high);
+#else
 		(void) sprintf(str,
 			"; low version = %lu, high version = %lu",
 			e.re_vers.low, e.re_vers.high);
+#endif
 		str += strlen(str);
 		break;
 
 	case RPC_AUTHERROR:
 		err = auth_errmsg(e.re_why);
+#ifdef _WIN32
+		sprintf_s(str, BUFFER_SIZE, "; why = ");
+#else
 		(void) sprintf(str,"; why = ");
+#endif
 		str += strlen(str);
 		if (err != NULL) {
+#ifdef _WIN32
+			sprintf_s(str, BUFFER_SIZE, "%s", err);
+#else
 			(void) sprintf(str, "%s",err);
+#endif
 		} else {
+#ifdef _WIN32
+			sprintf_s(str, BUFFER_SIZE,
+				"(unknown authentication error - %d)",
+				(int)e.re_why);
+#else
 			(void) sprintf(str,
 				"(unknown authentication error - %d)",
 				(int) e.re_why);
+#endif
 		}
 		str += strlen(str);
 		break;
 
 	case RPC_PROGVERSMISMATCH:
+#ifdef _WIN32
+		sprintf_s(str, BUFFER_SIZE,
+			"; low version = %lu, high version = %lu",
+			e.re_vers.low, e.re_vers.high);
+#else
 		(void) sprintf(str,
 			"; low version = %lu, high version = %lu",
 			e.re_vers.low, e.re_vers.high);
+#endif
 		str += strlen(str);
 		break;
 
 	default:	/* unknown */
+#ifdef _WIN32
+		sprintf_s(str, BUFFER_SIZE,
+			"; s1 = %lu, s2 = %lu",
+			e.re_lb.s1, e.re_lb.s2);
+#else
 		(void) sprintf(str,
 			"; s1 = %lu, s2 = %lu",
 			e.re_lb.s1, e.re_lb.s2);
+#endif
 		str += strlen(str);
 		break;
 	}
+#ifdef _WIN32
+	sprintf_s(str, BUFFER_SIZE, "\n");
+#else
 	(void) sprintf(str, "\n");
+#endif
 	return(strstart) ;
 }
 
 void
-clnt_perror(rpch, s)
-	CLIENT *rpch;
-	char *s;
+clnt_perror(CLIENT* client, char* msg)
 {
 #ifdef _WIN32
-	nt_rpc_report(clnt_sperror(rpch,s));
+	nt_rpc_report(clnt_sperror(client, msg));
 #else
-	(void) fprintf(stderr,"%s",clnt_sperror(rpch,s));
+	(void) fprintf(stderr,"%s",clnt_sperror(client, msg));
 #endif
 }
 
 
 struct rpc_errtab {
 	enum clnt_stat status;
-	char *message;
+	const char *message;
 };
 
 static struct rpc_errtab  rpc_errlist[] = {
@@ -240,9 +288,7 @@ static struct rpc_errtab  rpc_errlist[] = {
 /*
  * This interface for use by clntrpc
  */
-char *
-clnt_sperrno(stat)
-	enum clnt_stat stat;
+const char * clnt_sperrno(enum clnt_stat stat)
 {
 	int i;
 
@@ -255,8 +301,7 @@ clnt_sperrno(stat)
 }
 
 void
-clnt_perrno(num)
-	enum clnt_stat num;
+clnt_perrno(enum clnt_stat num)
 {
 #ifdef _WIN32
 	nt_rpc_report(clnt_sperrno(num));
@@ -266,9 +311,7 @@ clnt_perrno(num)
 }
 
 
-char *
-clnt_spcreateerror(s)
-	char *s;
+const char * clnt_spcreateerror(const char* s)
 {
 	extern int sys_nerr;
 #ifndef _WIN32
@@ -278,37 +321,64 @@ clnt_spcreateerror(s)
 
 	if (str == 0)
 		return(0);
+#ifdef _WIN32
+	sprintf_s(str, BUFFER_SIZE, "%s: ", s);
+	strcat_s(str, BUFFER_SIZE, clnt_sperrno(rpc_createerr.cf_stat));
+#else
 	(void) sprintf(str, "%s: ", s);
 	(void) strcat(str, clnt_sperrno(rpc_createerr.cf_stat));
+#endif
 	switch (rpc_createerr.cf_stat) {
 	case RPC_PMAPFAILURE:
+#ifdef _WIN32
+		strcat_s(str, BUFFER_SIZE, " - ");
+		strcat_s(str, BUFFER_SIZE,
+			clnt_sperrno(rpc_createerr.cf_error.re_status));
+#else
 		(void) strcat(str, " - ");
 		(void) strcat(str,
 		    clnt_sperrno(rpc_createerr.cf_error.re_status));
+#endif
 		break;
 
 	case RPC_SYSTEMERROR:
-		(void) strcat(str, " - ");
-		if (rpc_createerr.cf_error.re_errno > 0
-		    && rpc_createerr.cf_error.re_errno < sys_nerr)
-			(void) strcat(str,
 #ifdef _WIN32
-			    "internal rpc error");
+		strcat_s(str, BUFFER_SIZE, " - ");
 #else
-			    sys_errlist[rpc_createerr.cf_error.re_errno]);
+		(void) strcat(str, " - ");
 #endif
-		else
-			(void) sprintf(&str[strlen(str)], "Error %d",
-			    rpc_createerr.cf_error.re_errno);
+		if (rpc_createerr.cf_error.re_errno > 0
+			&& rpc_createerr.cf_error.re_errno < sys_nerr) {
+#ifdef _WIN32
+			strcat_s(str, BUFFER_SIZE,
+				"internal rpc error");
+#else
+			(void)strcat(str,
+				sys_errlist[rpc_createerr.cf_error.re_errno]);
+#endif
+		}
+		else {
+#ifdef _WIN32
+			size_t length = strlen(str);
+			sprintf_s(&str[length], BUFFER_SIZE - length,  "Error %d",
+				rpc_createerr.cf_error.re_errno);
+#else
+			(void)sprintf(&str[strlen(str)], "Error %d",
+				rpc_createerr.cf_error.re_errno);
+#endif
+		}
 		break;
 	}
+#ifdef _WIN32
+	strcat_s(str, BUFFER_SIZE, "\n");
+#else
 	(void) strcat(str, "\n");
+#endif
 	return (str);
 }
 
 void
-clnt_pcreateerror(s)
-	char *s;
+clnt_pcreateerror(const char* s)
 {
 #ifdef _WIN32
 	nt_rpc_report(clnt_spcreateerror(s));

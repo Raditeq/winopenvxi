@@ -70,16 +70,12 @@ static char sccsid[] = "@(#)clnt_generic.c 1.4 87/08/11 (C) 1987 SMI";
  * change using the rpc equivalent of ioctl()'s.
  */
 CLIENT *
-clnt_create(hostname, prog, vers, proto)
-	char *hostname;
-	unsigned prog;
-	unsigned vers;
-	char *proto;
+clnt_create(const char* hostname, u_long prog, u_long vers, const char * proto)
 {
 	struct hostent *h;
 	struct protoent *p;
 	struct sockaddr_in sin;
-	int sock;
+	socket_t sock;
 	struct timeval tv;
 	CLIENT *client;
 
@@ -114,7 +110,7 @@ clnt_create(hostname, prog, vers, proto)
 #endif 
 		return (NULL);
 	}
-	sock = RPC_ANYSOCK;
+	sock.fd = RPC_ANYSOCK;
 	switch (p->p_proto) {
 	case IPPROTO_UDP:
 		tv.tv_sec = 5;
@@ -148,9 +144,8 @@ clnt_create(hostname, prog, vers, proto)
 }
 
 void
-clnt_destroy(rh)
-	CLIENT *rh;
+clnt_destroy(CLIENT* client)
 {
-  CLNT_DESTROY(rh);
+  CLNT_DESTROY(client);
 }
 

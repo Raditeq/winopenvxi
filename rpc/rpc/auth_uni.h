@@ -84,14 +84,14 @@
  */
 struct authunix_parms {
 	u_long	 aup_time;
-	char	*aup_machname;
+	char *aup_machname;
 	int	 aup_uid;
 	int	 aup_gid;
 	u_int	 aup_len;
 	int	*aup_gids;
 };
 
-DllExport bool_t xdr_authunix_parms();
+DllExport bool_t xdr_authunix_parms(register XDR* xdrs, register struct authunix_parms* p);
 
 /* 
  * If a response verifier has flavor AUTH_SHORT, 

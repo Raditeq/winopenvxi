@@ -34,14 +34,14 @@
 #include <malloc.h>
 #endif
 
-#include <rpc/netdb.h>
-#include <rpc/rpc.h>
+#include <rpc/Netdb.h>
+#include <rpc/Rpc.h>
 #include <rpc/xdr.h>
 #include <rpc/auth.h>
 #include <rpc/auth_uni.h>
 #include <rpc/clnt.h>
 #include <rpc/pmap_cln.h>
-#include <rpc/pmap_pro.h>
+#include <rpc/Pmap_pro.h>
 #include <rpc/pmap_rmt.h>
 #include <rpc/xdr.h>
 #include <sys/types.h>
@@ -78,8 +78,8 @@
 #endif
 
 DllExport void get_myaddress(struct sockaddr_in *addr);
-int bindresvport(int sd,struct sockaddr_in *sin);
-void bcopy(char *s1,char *s2, int len);
+int bindresvport(socket_t sd,struct sockaddr_in *sin);
+void bcopy(const char *from,char *to, int len);
 void bzero(char *s, int len);
 int bcmp(char *s1, char *s2, int len);
 

@@ -97,7 +97,7 @@ enum xprt_stat {
  * Server side transport handle
  */
 typedef struct {
-	int		xp_sock;
+	socket_t xp_sock;
 	u_short		xp_port;	 /* associated port number */
 	struct xp_ops {
 	    bool_t	(*xp_recv)();	 /* receive incomming requests */
@@ -181,7 +181,7 @@ struct svc_req {
  *	void (*dispatch)();
  *	int protocol;  /* like TCP or UDP, zero means do not register 
  */
-DllExport bool_t	svc_register();
+DllExport bool_t svc_register(SVCXPRT* xprt, u_long prog, u_long vers, void (*dispatch)(), int protocol);
 
 /*
  * Service un-registration
@@ -190,7 +190,7 @@ DllExport bool_t	svc_register();
  *	u_long prog;
  *	u_long vers;
  */
-DllExport void	svc_unregister();
+DllExport void svc_unregister(u_long prog, u_long vers);
 
 /*
  * Transport registration.
@@ -198,7 +198,7 @@ DllExport void	svc_unregister();
  * xprt_register(xprt)
  *	SVCXPRT *xprt;
  */
-DllExport void	xprt_register();
+DllExport void xprt_register(SVCXPRT* xprt);
 
 /*
  * Transport un-register
@@ -206,7 +206,7 @@ DllExport void	xprt_register();
  * xprt_unregister(xprt)
  *	SVCXPRT *xprt;
  */
-DllExport void	xprt_unregister();
+DllExport void	xprt_unregister(SVCXPRT* xprt);
 
 
 
@@ -237,14 +237,14 @@ DllExport void	xprt_unregister();
  * deadlock the caller and server processes!
  */
 
-DllExport bool_t	svc_sendreply();
-DllExport void	svcerr_decode();
-DllExport void	svcerr_weakauth();
-DllExport void	svcerr_noproc();
-DllExport void	svcerr_progvers();
-DllExport void	svcerr_auth();
-DllExport void	svcerr_noprog();
-DllExport void	svcerr_systemerr();
+DllExport bool_t svc_sendreply(register SVCXPRT* xprt, xdrproc_t xdr_results, caddr_t xdr_location);
+DllExport void svcerr_decode(register SVCXPRT* xprt);
+DllExport void svcerr_weakauth(SVCXPRT* xprt);
+DllExport void svcerr_noproc(register SVCXPRT* xprt);
+DllExport void svcerr_progvers(register SVCXPRT* xprt, u_long low_vers, u_long high_vers);
+DllExport void svcerr_auth(SVCXPRT* xprt, enum auth_stat why);
+DllExport void svcerr_noprog(register SVCXPRT* xprt);
+DllExport void svcerr_systemerr(register SVCXPRT* xprt);
     
 /*
  * Lowest level dispatching -OR- who owns this process anyway.
@@ -286,9 +286,14 @@ extern int svc_fds;
  */
 extern void rpctest_service();
 
-DllExport void	svc_getreq();
-DllExport void	svc_getreqset();	/* takes fdset instead of int */
-DllExport void	svc_run(); 	 /* never returns */
+DllExport void svc_getreq(int rdfds);
+DllExport void
+#ifdef FD_SETSIZE
+svc_getreqset(fd_set* readfds); /* takes fdset instead of int */
+#else
+svc_getreqset(int* readfds);
+#endif
+DllExport void svc_run(); 	 /* never returns */
 
 /*
  * Socket to use on svcxxx_create call to get default socket
@@ -307,13 +312,13 @@ DllExport SVCXPRT *svcraw_create();
 /*
  * Udp based rpc.
  */
-DllExport SVCXPRT *svcudp_create();
-DllExport SVCXPRT *svcudp_bufcreate();
+DllExport SVCXPRT* svcudp_create(socket_t sock);
+DllExport SVCXPRT* svcudp_bufcreate(register socket_t sock, u_int sendsz, u_int recvsz);
 
 /*
  * Tcp based rpc.
  */
-DllExport SVCXPRT *svctcp_create();
+DllExport SVCXPRT* svctcp_create(register socket_t sock, u_int sendsize, u_int recvsize);
 
 
 

@@ -108,9 +108,7 @@ static struct sgl_limits {
 #endif /* vax */
 
 bool_t
-xdr_float(xdrs, fp)
-	register XDR *xdrs;
-	register float *fp;
+xdr_float(register XDR* xdrs, register float* fp)
 {
 
 #ifdef _WIN32
@@ -226,9 +224,7 @@ static struct dbl_limits {
 
 
 bool_t
-xdr_double(xdrs, dp)
-	register XDR *xdrs;
-	double *dp;
+xdr_double(register XDR* xdrs, double* dp)
 {
 	register long *lp;
 #if !defined(mc68000) && !defined(sparc) && !defined(mips) && !defined(mmax) && !defined(_X86_) && !defined(_AMD64_)

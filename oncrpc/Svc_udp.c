@@ -104,8 +104,8 @@ struct svcudp_data {
 };
 #define	su_data(xprt)	((struct svcudp_data *)(xprt->xp_p2))
 
-static cache_get(SVCXPRT *xprt, struct rpc_msg *msg, char **replyp, u_long *replylenp);
-static void cache_set(SVCXPRT *xprt, u_long replylen);
+static cache_get(SVCXPRT *xprt, struct rpc_msg *msg, char **replyp, size_t *replylenp);
+static void cache_set(SVCXPRT *xprt, size_t replylen);
 
 
 /*
@@ -122,9 +122,7 @@ static void cache_set(SVCXPRT *xprt, u_long replylen);
  * The routines returns NULL if a problem occurred.
  */
 SVCXPRT *
-svcudp_bufcreate(sock, sendsz, recvsz)
-	register int sock;
-	u_int sendsz, recvsz;
+svcudp_bufcreate(register socket_t sock, u_int sendsz, u_int recvsz)
 {
 	bool_t madesock = FALSE;
 	register SVCXPRT *xprt;
@@ -132,11 +130,11 @@ svcudp_bufcreate(sock, sendsz, recvsz)
 	struct sockaddr_in addr;
 	int len = sizeof(struct sockaddr_in);
 
-	if (sock == RPC_ANYSOCK) {
+	if (sock.fd == RPC_ANYSOCK) {
 #ifdef _WIN32
-		if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
+		if ((sock.socket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
 #else
-		if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+		if ((sock.socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 #endif
 			perror("svcudp_create: socket creation problem");
 			return ((SVCXPRT *)NULL);
@@ -147,15 +145,15 @@ svcudp_bufcreate(sock, sendsz, recvsz)
 	addr.sin_family = AF_INET;
 	if (bindresvport(sock, &addr)) {
 		addr.sin_port = 0;
-		(void)bind(sock, (struct sockaddr *)&addr, len);
+		(void)bind(sock.socket, (struct sockaddr *)&addr, len);
 	}
-	if (getsockname(sock, (struct sockaddr *)&addr, &len) != 0) {
+	if (getsockname(sock.socket, (struct sockaddr *)&addr, &len) != 0) {
 		perror("svcudp_create - cannot getsockname");
 		if (madesock)
 #ifdef _WIN32
-			(void)closesocket(sock);
+			(void)closesocket(sock.socket);
 #else
-			(void)close(sock);
+			(void)close(sock.socket);
 #endif
 		return ((SVCXPRT *)NULL);
 	}
@@ -199,10 +197,8 @@ svcudp_bufcreate(sock, sendsz, recvsz)
 }
 
 SVCXPRT *
-svcudp_create(sock)
-	int sock;
+svcudp_create(socket_t sock)
 {
-
 	return(svcudp_bufcreate(sock, UDPMSGSIZE, UDPMSGSIZE));
 }
 
@@ -223,11 +219,11 @@ svcudp_recv(xprt, msg)
 	register XDR *xdrs = &(su->su_xdrs);
 	register int rlen;
 	char *reply;
-	u_long replylen;
+	size_t replylen;
 
     again:
 	xprt->xp_addrlen = sizeof(struct sockaddr_in);
-	rlen = recvfrom(xprt->xp_sock, rpc_buffer(xprt), (int) su->su_iosz,
+	rlen = recvfrom(xprt->xp_sock.socket, rpc_buffer(xprt), (int) su->su_iosz,
 	    0, (struct sockaddr *)&(xprt->xp_raddr), &(xprt->xp_addrlen));
 #ifdef _WIN32
 	if (rlen == -1 && WSAerrno == WSAEINTR)
@@ -245,9 +241,9 @@ svcudp_recv(xprt, msg)
 	if (su->su_cache != NULL) {
 		if (cache_get(xprt, msg, &reply, &replylen)) {
 #ifdef _WIN32
-			  sendto(xprt->xp_sock, reply, (int) replylen, 0,
+			  sendto(xprt->xp_sock.socket, reply, (int) replylen, 0,
 #else
-			(void) sendto(xprt->xp_sock, reply, (int) replylen, 0,
+			(void) sendto(xprt->xp_sock.socket, reply, (int) replylen, 0,
 #endif
 			  (struct sockaddr *) &xprt->xp_raddr, xprt->xp_addrlen);
 			return (TRUE);
@@ -263,7 +259,7 @@ svcudp_reply(xprt, msg)
 {
 	register struct svcudp_data *su = su_data(xprt);
 	register XDR *xdrs = &(su->su_xdrs);
-	register int slen;
+	register size_t slen;
 	register bool_t stat = FALSE;
 
 	xdrs->x_op = XDR_ENCODE;
@@ -271,12 +267,12 @@ svcudp_reply(xprt, msg)
 	msg->rm_xid = su->su_xid;
 	if (xdr_replymsg(xdrs, msg)) {
 		slen = (int)XDR_GETPOS(xdrs);
-		if (sendto(xprt->xp_sock, rpc_buffer(xprt), slen, 0,
+		if (sendto(xprt->xp_sock.socket, rpc_buffer(xprt), slen, 0,
 		    (struct sockaddr *)&(xprt->xp_raddr), xprt->xp_addrlen)
 		    == slen) {
 			stat = TRUE;
 			if (su->su_cache && slen >= 0) {
-				cache_set(xprt, (u_long) slen);
+				cache_set(xprt, slen);
 			}
 		}
 	}
@@ -313,9 +309,9 @@ svcudp_destroy(xprt)
 
 	xprt_unregister(xprt);
 #ifdef _WIN32
-	(void)closesocket(xprt->xp_sock);
+	(void)closesocket(xprt->xp_sock.socket);
 #else
-	(void)close(xprt->xp_sock);
+	(void)close(xprt->xp_sock.socket);
 #endif
 	XDR_DESTROY(&(su->su_xdrs));
 	mem_free(rpc_buffer(xprt), su->su_iosz);
@@ -365,7 +361,7 @@ struct cache_node {
 	 * The cached reply and length
 	 */
 	char * cache_reply;
-	u_long cache_replylen;
+	size_t cache_replylen;
 	/*
  	 * Next node on the list, if there is a collision
 	 */
@@ -378,7 +374,7 @@ struct cache_node {
  * The entire cache
  */
 struct udp_cache {
-	u_long uc_size;		/* size of cache */
+	size_t uc_size;		/* size of cache */
 	cache_ptr *uc_entries;	/* hash table of entries in cache */
 	cache_ptr *uc_fifo;	/* fifo list of entries in cache */
 	u_long uc_nextvictim;	/* points to next victim in fifo list */
@@ -402,7 +398,7 @@ struct udp_cache {
  */
 svcudp_enablecache(transp, size)
 	SVCXPRT *transp;
-	u_long size;
+	size_t size;
 {
 	struct svcudp_data *su = su_data(transp);
 	struct udp_cache *uc;
@@ -438,9 +434,7 @@ svcudp_enablecache(transp, size)
  * Set an entry in the cache
  */
 static void
-cache_set(xprt, replylen)
-	SVCXPRT *xprt;
-	u_long replylen;
+cache_set(SVCXPRT* xprt, size_t replylen)
 {
 	register cache_ptr victim;
 	register cache_ptr *vicp;
@@ -503,11 +497,7 @@ cache_set(xprt, replylen)
  * return 1 if found, 0 if not found
  */
 static
-cache_get(xprt, msg, replyp, replylenp)
-	SVCXPRT *xprt;
-	struct rpc_msg *msg;
-	char **replyp;
-	u_long *replylenp;
+cache_get(SVCXPRT* xprt, struct rpc_msg* msg, char** replyp, size_t* replylenp)
 {
 	u_int loc;
 	register cache_ptr ent;

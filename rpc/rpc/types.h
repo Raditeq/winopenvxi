@@ -57,6 +57,8 @@
  */
 /*      @(#)types.h 1.18 87/07/24 SMI      */
 
+#include <stdint.h>
+
 /*
  * Rpc additions to <sys/types.h>
  */
@@ -74,6 +76,12 @@
 #define __dontcare__	-1
 #ifndef NULL
 #	define NULL 0
+#endif
+
+#if defined(_WIN64) || defined(__X86_64__) || defined(__ppc64__)
+#define __64BIT_ENV__
+#else
+#define __32BIT_ENV__
 #endif
 
 #ifndef _WIN32
@@ -97,8 +105,25 @@ extern char *malloc();
 #endif
 
 typedef char *caddr_t;
-typedef unsigned int u_int;
+typedef uint32_t u_int;
 typedef unsigned long u_long;
 typedef unsigned short u_short;
+
+#ifdef _WIN32
+typedef union{
+	SOCKET socket;
+#ifdef __64BIT_ENV__
+	int64_t fd;
+#else
+	int32_t fd;
+#endif
+} socket_t;
+#else
+typedef union
+{
+	int socket;
+	int fd;
+} socket_t;
+#endif
 
 #endif /* ndef __TYPES_RPC_HEADER__ */

@@ -14,7 +14,7 @@ typedef unsigned long u_long;
 typedef unsigned short u_short;
 
 typedef struct CLIENT CLIENT;
-CLIENT *clnt_create(char *hostname, unsigned prog, unsigned vers, char *proto);
+CLIENT *clnt_create(const char *hostname, unsigned prog, unsigned vers, const char *proto);
 void clnt_destroy(CLIENT* rh);
 
 #define DEVICE_CORE ((u_long)0x0607AF)
@@ -49,7 +49,7 @@ struct Create_LinkParms {
 	long clientId;
 	bool_t lockDevice;
 	u_long lock_timeout;
-	char *device;
+	const char *device;
 };
 typedef struct Create_LinkParms Create_LinkParms;
 
@@ -60,7 +60,7 @@ typedef struct {
 	Device_Flags flags;
 	struct {
 		u_int data_len;
-		char *data_val;
+		const char *data_val;
 	} data;
 } Device_WriteParms	;
 

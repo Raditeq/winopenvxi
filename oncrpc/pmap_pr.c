@@ -69,9 +69,7 @@ static char sccsid[] = "@(#)pmap_prot.c 1.17 87/08/11 Copyr 1984 Sun Micro";
 #include "all_oncrpc.h"
 
 bool_t
-xdr_pmap(xdrs, regs)
-	XDR *xdrs;
-	struct pmap *regs;
+xdr_pmap(XDR* xdrs, struct pmap* regs)
 {
 
 	if (xdr_u_long(xdrs, &regs->pm_prog) && 

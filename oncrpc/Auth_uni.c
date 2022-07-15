@@ -110,12 +110,7 @@ static void marshal_new_auth();
  * Returns an auth handle with the given stuff in it.
  */
 AUTH *
-authunix_create(machname, uid, gid, len, aup_gids)
-	char *machname;
-	int uid;
-	int gid;
-	register int len;
-	int *aup_gids;
+authunix_create(char* machname, int uid, int gid, register int len, int* aup_gids)
 {
 	struct authunix_parms aup;
 	char mymem[MAX_AUTH_BYTES];

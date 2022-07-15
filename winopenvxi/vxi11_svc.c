@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <rpc/rpc.h>
-#include <rpc/pmap_cln.h>
+#include <rpc/Rpc.h>
+#include <rpc/Pmap_cln.h>
 #include "vxi11_prot.h"
 
 static void device_async_1();
@@ -17,7 +17,9 @@ void vxi11_svc_main()
 	(void)pmap_unset(DEVICE_ASYNC, DEVICE_ASYNC_VERSION);
 	(void)pmap_unset(DEVICE_CORE, DEVICE_CORE_VERSION);
 
-	transp = svcudp_create(RPC_ANYSOCK);
+	socket_t socket;
+	socket.fd = RPC_ANYSOCK;
+	transp = svcudp_create(socket);
 	if (transp == NULL) {
 		(void)fprintf(stderr, "cannot create udp service.\n");
 #ifdef _WIN32
@@ -40,7 +42,8 @@ void vxi11_svc_main()
 		exit(1);
 	}
 
-	transp = svctcp_create(RPC_ANYSOCK, 0, 0);
+	socket.fd = RPC_ANYSOCK;
+	transp = svctcp_create(socket, 0, 0);
 	if (transp == NULL) {
 		(void)fprintf(stderr, "cannot create tcp service.\n");
 #ifdef _WIN32
@@ -82,9 +85,7 @@ static void device_async_1_a ();
 #endif
 
 static void
-device_async_1(rqstp, transp)
-	struct svc_req *rqstp;
-	SVCXPRT *transp;
+device_async_1(struct svc_req* rqstp, SVCXPRT* transp)
 {
 	union {
 		Device_Link device_abort_1_arg;
@@ -199,9 +200,7 @@ static void device_core_1_a ();
 #endif
 
 static void
-device_core_1(rqstp, transp)
-	struct svc_req *rqstp;
-	SVCXPRT *transp;
+device_core_1(struct svc_req* rqstp, SVCXPRT* transp)
 {
 	union {
 		Create_LinkParms create_link_1_arg;

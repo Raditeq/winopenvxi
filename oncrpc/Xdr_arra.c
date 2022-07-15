@@ -70,24 +70,21 @@ static char sccsid[] = "@(#)xdr_array.c 1.10 87/08/11 Copyr 1984 Sun Micro";
 
 #include "all_oncrpc.h"
 
-#define LASTUNSIGNED	((u_int)0-1)
+#define LASTUNSIGNED (~(u_int)0)
 
-
-/*
- * XDR an array of arbitrary elements
- * *addrp is a pointer to the array, *sizep is the number of elements.
- * If addrp is NULL (*sizep * elsize) bytes are allocated.
- * elsize is the size (in bytes) of each element, and elproc is the
- * xdr procedure to call to handle each element of the array.
+/**
+ * \brief XDR an array of arbitrary elements
+ * \remark If addrp is NULL (*sizep * elsize) bytes are allocated.
+ * \param xdrs The xdr to add the array to
+ * \param addrp array pointer
+ * \param sizep number of elements
+ * \param maxsize max number of elements
+ * \param elsize size in bytes of each element
+ * \param elproc xdr routine to handle each element
+ * \returns a boolean if the operation was successful
  */
 bool_t
-xdr_array(xdrs, addrp, sizep, maxsize, elsize, elproc)
-	register XDR *xdrs;
-	caddr_t *addrp;		/* array pointer */
-	u_int *sizep;		/* number of elements */
-	u_int maxsize;		/* max numberof elements */
-	u_int elsize;		/* size in bytes of each element */
-	xdrproc_t elproc;	/* xdr routine to handle each element */
+xdr_array(register XDR* xdrs, caddr_t* addrp, u_int* sizep, u_int maxsize, u_int elsize, xdrproc_t elproc)
 {
 	register u_int i;
 	register caddr_t target = *addrp;
@@ -164,12 +161,7 @@ xdr_array(xdrs, addrp, sizep, maxsize, elsize, elproc)
  * > xdr_elem: routine to XDR each element
  */
 bool_t
-xdr_vector(xdrs, basep, nelem, elemsize, xdr_elem)
-	register XDR *xdrs;
-	register char *basep;
-	register u_int nelem;
-	register u_int elemsize;
-	register xdrproc_t xdr_elem;
+xdr_vector(register XDR* xdrs, register char* basep, register u_int nelem, register u_int elemsize, register xdrproc_t xdr_elem)
 {
 	register u_int i;
 	register char *elptr;

@@ -78,7 +78,7 @@ extern int errno;
 #ifdef FD_SETSIZE
 static SVCXPRT **xports;
 #ifdef _WIN32
-static int sizeof_xports = FD_SETSIZE;
+static size_t sizeof_xports = FD_SETSIZE;
 #endif
 #else
 #define NOFILE 32
@@ -97,9 +97,9 @@ static SVCXPRT *xports[NOFILE];
  */
 static struct svc_callout {
 	struct svc_callout *sc_next;
-	u_long		    sc_prog;
-	u_long		    sc_vers;
-	void		    (*sc_dispatch)();
+	u_long sc_prog;
+	u_long sc_vers;
+	void (*sc_dispatch)();
 } *svc_head;
 
 static struct svc_callout *svc_find();
@@ -110,10 +110,9 @@ static struct svc_callout *svc_find();
  * Activate a transport handle.
  */
 void
-xprt_register(xprt)
-	SVCXPRT *xprt;
+xprt_register(SVCXPRT* xprt)
 {
-	register int sock = xprt->xp_sock;
+	register socket_t sock = xprt->xp_sock;
 
 #ifdef FD_SETSIZE
 	if (xports == NULL) {
@@ -121,7 +120,7 @@ xprt_register(xprt)
 			mem_alloc(FD_SETSIZE * sizeof(SVCXPRT *));
 	}
 #ifdef _WIN32
-	while (sock >= sizeof_xports) {
+	while (sock.fd >= sizeof_xports) {
 		SVCXPRT **old_xports;
 
 		old_xports = xports;
@@ -133,12 +132,16 @@ xprt_register(xprt)
 
 
 	if (svc_fdset.fd_count < FD_SETSIZE) {
-		xports[sock] = xprt;
-		FD_SET(sock, &svc_fdset);
+		xports[sock.fd] = xprt;
+		FD_SET(sock.socket, &svc_fdset);
 	} else {
 		char str[256];
-		
-		sprintf(str, "too many connections (%d), compilation constant FD_SETSIZE was only %d", sock, FD_SETSIZE);
+
+#ifdef __64BIT_ENV__
+		sprintf_s(str, sizeof str, "too many connections (%lld), compilation constant FD_SETSIZE was only %d", sock.fd, FD_SETSIZE);
+#else
+		sprintf_s(str, sizeof str, "too many connections (%d), compilation constant FD_SETSIZE was only %d", sock.fd, FD_SETSIZE);
+#endif
 		nt_rpc_report(str);
 	}
 #else
@@ -160,26 +163,25 @@ xprt_register(xprt)
  * De-activate a transport handle. 
  */
 void
-xprt_unregister(xprt) 
-	SVCXPRT *xprt;
+xprt_unregister(SVCXPRT* xprt)
 { 
-	register int sock = xprt->xp_sock;
+	register socket_t sock = xprt->xp_sock;
 
 #ifdef FD_SETSIZE
 #ifdef _WIN32
-	if ((xports[sock] == xprt)) {
-		xports[sock] = (SVCXPRT *)0;
-		FD_CLR((unsigned)sock, &svc_fdset);
+	if ((xports[sock.fd] == xprt)) {
+		xports[sock.fd] = (SVCXPRT *)0;
+		FD_CLR((unsigned)sock.socket, &svc_fdset);
 #else
-	if ((sock < _rpc_dtablesize()) && (xports[sock] == xprt)) {
-		xports[sock] = (SVCXPRT *)0;
-		FD_CLR(sock, &svc_fdset);
+	if ((sock < _rpc_dtablesize()) && (xports[sock.fd] == xprt)) {
+		xports[sock.fd] = (SVCXPRT *)0;
+		FD_CLR(sock.socket, &svc_fdset);
 #endif
 	}
 #else
-	if ((sock < NOFILE) && (xports[sock] == xprt)) {
-		xports[sock] = (SVCXPRT *)0;
-		svc_fds &= ~(1 << sock);
+	if ((sock < NOFILE) && (xports[sock.fd] == xprt)) {
+		xports[sock.fd] = (SVCXPRT *)0;
+		svc_fds &= ~(1 << sock.fd);
 	}
 #endif /* def FD_SETSIZE */
 }
@@ -193,12 +195,7 @@ xprt_unregister(xprt)
  * program number comes in.
  */
 bool_t
-svc_register(xprt, prog, vers, dispatch, protocol)
-	SVCXPRT *xprt;
-	u_long prog;
-	u_long vers;
-	void (*dispatch)();
-	int protocol;
+svc_register(SVCXPRT * xprt, u_long prog, u_long vers, void (*dispatch)(), int protocol)
 {
 	struct svc_callout *prev;
 	register struct svc_callout *s;
@@ -229,11 +226,9 @@ pmap_it:
  * Remove a service program from the callout list.
  */
 void
-svc_unregister(prog, vers)
-	u_long prog;
-	u_long vers;
+svc_unregister(u_long prog, u_long vers)
 {
-	struct svc_callout *prev;
+	struct svc_callout *prev = NULL;
 	register struct svc_callout *s;
 
 	if ((s = svc_find(prog, vers, &prev)) == NULL_SVC)
@@ -254,10 +249,7 @@ svc_unregister(prog, vers)
  * struct.
  */
 static struct svc_callout *
-svc_find(prog, vers, prev)
-	u_long prog;
-	u_long vers;
-	struct svc_callout **prev;
+svc_find(u_long prog, u_long vers, struct svc_callout** prev)
 {
 	register struct svc_callout *s, *p;
 
@@ -278,10 +270,7 @@ done:
  * Send a reply to an rpc request
  */
 bool_t
-svc_sendreply(xprt, xdr_results, xdr_location)
-	register SVCXPRT *xprt;
-	xdrproc_t xdr_results;
-	caddr_t xdr_location;
+svc_sendreply(register SVCXPRT* xprt, xdrproc_t xdr_results, caddr_t xdr_location)
 {
 	struct rpc_msg rply; 
 
@@ -298,8 +287,7 @@ svc_sendreply(xprt, xdr_results, xdr_location)
  * No procedure error reply
  */
 void
-svcerr_noproc(xprt)
-	register SVCXPRT *xprt;
+svcerr_noproc(register SVCXPRT* xprt)
 {
 	struct rpc_msg rply;
 
@@ -314,8 +302,7 @@ svcerr_noproc(xprt)
  * Can't decode args error reply
  */
 void
-svcerr_decode(xprt)
-	register SVCXPRT *xprt;
+svcerr_decode(register SVCXPRT* xprt)
 {
 	struct rpc_msg rply; 
 
@@ -330,8 +317,7 @@ svcerr_decode(xprt)
  * Some system error
  */
 void
-svcerr_systemerr(xprt)
-	register SVCXPRT *xprt;
+svcerr_systemerr(register SVCXPRT* xprt)
 {
 	struct rpc_msg rply; 
 
@@ -346,9 +332,7 @@ svcerr_systemerr(xprt)
  * Authentication error reply
  */
 void
-svcerr_auth(xprt, why)
-	SVCXPRT *xprt;
-	enum auth_stat why;
+svcerr_auth(SVCXPRT* xprt, enum auth_stat why)
 {
 	struct rpc_msg rply;
 
@@ -363,10 +347,8 @@ svcerr_auth(xprt, why)
  * Auth too weak error reply
  */
 void
-svcerr_weakauth(xprt)
-	SVCXPRT *xprt;
+svcerr_weakauth(SVCXPRT* xprt)
 {
-
 	svcerr_auth(xprt, AUTH_TOOWEAK);
 }
 
@@ -374,8 +356,7 @@ svcerr_weakauth(xprt)
  * Program unavailable error reply
  */
 void 
-svcerr_noprog(xprt)
-	register SVCXPRT *xprt;
+svcerr_noprog(register SVCXPRT* xprt)
 {
 	struct rpc_msg rply;  
 
@@ -390,10 +371,7 @@ svcerr_noprog(xprt)
  * Program version mismatch error reply
  */
 void  
-svcerr_progvers(xprt, low_vers, high_vers)
-	register SVCXPRT *xprt; 
-	u_long low_vers;
-	u_long high_vers;
+svcerr_progvers(register SVCXPRT* xprt, u_long low_vers, u_long high_vers)
 {
 	struct rpc_msg rply;
 
@@ -425,8 +403,7 @@ svcerr_progvers(xprt, low_vers, high_vers)
  */
 
 void
-svc_getreq(rdfds)
-	int rdfds;
+svc_getreq(int rdfds)
 {
 #ifdef FD_SETSIZE
 #ifdef _WIN32
@@ -456,12 +433,11 @@ int i;
 }
 
 void
-svc_getreqset(readfds)
 #ifdef FD_SETSIZE
-	fd_set *readfds;
+svc_getreqset(fd_set* readfds)
 {
 #else
-	int *readfds;
+svc_getreqset(int * readfds)
 {
     int readfds_local = *readfds;
 #endif /* def FD_SETSIZE */

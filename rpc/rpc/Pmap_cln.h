@@ -85,9 +85,18 @@
  *		address if the responder to the broadcast.
  */
 
-DllExport bool_t		pmap_set();
-DllExport bool_t		pmap_unset();
-DllExport struct pmaplist	*pmap_getmaps();
-enum clnt_stat		pmap_rmtcall();
-DllExport enum clnt_stat		clnt_broadcast();
-DllExport u_short		pmap_getport();
+typedef bool_t(*resultproc_t)();
+
+DllExport bool_t pmap_set(u_long program, u_long version, int protocol, u_short port);
+DllExport bool_t pmap_unset(u_long program, u_long version);
+DllExport struct pmaplist *pmap_getmaps(struct sockaddr_in* address);
+enum clnt_stat pmap_rmtcall(struct sockaddr_in* addr, const u_long prog, const u_long vers,
+	const u_long proc, xdrproc_t xdrargs, caddr_t argsp, xdrproc_t xdrres, caddr_t resp,
+	const struct timeval tout, u_long* port_ptr);
+DllExport enum clnt_stat clnt_broadcast(u_long prog, u_long vers, u_long proc,
+	xdrproc_t xargs, caddr_t argsp, xdrproc_t xresults, caddr_t resultsp,
+	resultproc_t eachresult);
+DllExport u_short pmap_getport(struct sockaddr_in* address, const u_long program, const u_long version, const u_int protocol);
+
+DllExport void pmap_settimeout(struct timeval *timeout);
+DllExport const struct timeval* pmap_gettimeout();

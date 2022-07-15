@@ -67,11 +67,7 @@ static char sccsid[] = "@(#)pmap_clnt.c 1.37 87/08/11 Copyr 1984 Sun Micro";
  */
 
 #include "all_oncrpc.h"
-
-static struct timeval timeout = { 5, 0 };
-static struct timeval tottimeout = { 60, 0 };
-
-void clnt_perror();
+#include "pmap_tmt.h"
 
 
 /*
@@ -79,21 +75,17 @@ void clnt_perror();
  * Calls the pmap service remotely to do the mapping.
  */
 bool_t
-pmap_set(program, version, protocol, port)
-	u_long program;
-	u_long version;
-	int protocol;
-	u_short port;
+pmap_set(u_long program, u_long version, int protocol, u_short port)
 {
 	struct sockaddr_in myaddress;
-	int socket = -1;
+	socket_t socket;
 	register CLIENT *client;
 	struct pmap parms;
 	bool_t rslt;
 
 	get_myaddress(&myaddress);
 	client = clntudp_bufcreate(&myaddress, PMAPPROG, PMAPVERS,
-	    timeout, &socket, RPCSMALLMSGSIZE, RPCSMALLMSGSIZE);
+	    pmap_clientTimeout, &socket, RPCSMALLMSGSIZE, RPCSMALLMSGSIZE);
 	if (client == (CLIENT *)NULL)
 		return (FALSE);
 	parms.pm_prog = program;
@@ -101,15 +93,15 @@ pmap_set(program, version, protocol, port)
 	parms.pm_prot = protocol;
 	parms.pm_port = port;
 	if (CLNT_CALL(client, PMAPPROC_SET, xdr_pmap, &parms, xdr_bool, &rslt,
-	    tottimeout) != RPC_SUCCESS) {
+		pmap_totTimeout) != RPC_SUCCESS) {
 		clnt_perror(client, "Cannot register service");
 		return (FALSE);
 	}
 	CLNT_DESTROY(client);
 #ifdef _WIN32
-	(void)closesocket(socket);
+	(void)closesocket(socket.socket);
 #else
-	(void)close(socket);
+	(void)close(socket.socket);
 #endif
 	return (rslt);
 }
@@ -119,31 +111,29 @@ pmap_set(program, version, protocol, port)
  * Calls the pmap service remotely to do the un-mapping.
  */
 bool_t
-pmap_unset(program, version)
-	u_long program;
-	u_long version;
+pmap_unset(u_long program, u_long version)
 {
 	struct sockaddr_in myaddress;
-	int socket = -1;
+	socket_t socket;
 	register CLIENT *client;
 	struct pmap parms;
 	bool_t rslt;
 
 	get_myaddress(&myaddress);
 	client = clntudp_bufcreate(&myaddress, PMAPPROG, PMAPVERS,
-	    timeout, &socket, RPCSMALLMSGSIZE, RPCSMALLMSGSIZE);
+		pmap_clientTimeout, &socket, RPCSMALLMSGSIZE, RPCSMALLMSGSIZE);
 	if (client == (CLIENT *)NULL)
 		return (FALSE);
 	parms.pm_prog = program;
 	parms.pm_vers = version;
 	parms.pm_port = parms.pm_prot = 0;
 	CLNT_CALL(client, PMAPPROC_UNSET, xdr_pmap, &parms, xdr_bool, &rslt,
-	    tottimeout);
+		pmap_totTimeout);
 	CLNT_DESTROY(client);
 #ifdef _WIN32
-	(void)closesocket(socket);
+	(void)closesocket(socket.socket);
 #else
-	(void)close(socket);
+	(void)close(socket.socket);
 #endif
 	return (rslt);
 }

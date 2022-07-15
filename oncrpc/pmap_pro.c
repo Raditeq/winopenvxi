@@ -107,9 +107,7 @@ static char sccsid[] = "@(#)pmap_prot2.c 1.3 87/08/11 Copyr 1984 Sun Micro";
  * this sounds like a job for xdr_reference!
  */
 bool_t
-xdr_pmaplist(xdrs, rp)
-	register XDR *xdrs;
-	register struct pmaplist **rp;
+xdr_pmaplist(register XDR* xdrs, register struct pmaplist** rp)
 {
 	/*
 	 * more_elements is pre-computed in case the direction is
@@ -118,7 +116,7 @@ xdr_pmaplist(xdrs, rp)
 	 */
 	bool_t more_elements;
 	register int freeing = (xdrs->x_op == XDR_FREE);
-	register struct pmaplist **next;
+	register struct pmaplist **next = NULL;
 
 	while (TRUE) {
 		more_elements = (bool_t)(*rp != NULL);
@@ -131,11 +129,13 @@ xdr_pmaplist(xdrs, rp)
 		 * the case of freeing we must remember the next object
 		 * before we free the current object ...
 		 */
-		if (freeing)
-			next = &((*rp)->pml_next); 
-		if (! xdr_reference(xdrs, (caddr_t *)rp,
-		    (u_int)sizeof(struct pmaplist), xdr_pmap))
+		if (freeing) {
+			next = &((*rp)->pml_next);
+		}
+		if (!xdr_reference(xdrs, (caddr_t*)rp,
+			(u_int)sizeof(struct pmaplist), xdr_pmap)) {
 			return (FALSE);
+		}
 		rp = (freeing) ? next : &((*rp)->pml_next);
 	}
 }

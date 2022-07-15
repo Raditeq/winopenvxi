@@ -80,11 +80,8 @@ static char sccsid[] = "@(#)rpc_prot.c 1.36 87/08/11 Copyr 1984 Sun Micro";
  * (see auth.h)
  */
 bool_t
-xdr_opaque_auth(xdrs, ap)
-	register XDR *xdrs;
-	register struct opaque_auth *ap;
+xdr_opaque_auth(register XDR* xdrs, register struct opaque_auth* ap)
 {
-
 	if (xdr_enum(xdrs, &(ap->oa_flavor)))
 		return (xdr_bytes(xdrs, &ap->oa_base,
 			&ap->oa_length, MAX_AUTH_BYTES));
@@ -165,9 +162,7 @@ static struct xdr_discrim reply_dscrm[3] = {
  * XDR a reply message
  */
 bool_t
-xdr_replymsg(xdrs, rmsg)
-	register XDR *xdrs;
-	register struct rpc_msg *rmsg;
+xdr_replymsg(register XDR* xdrs, register struct rpc_msg* rmsg)
 {
 	if (
 	    xdr_u_long(xdrs, &(rmsg->rm_xid)) && 
@@ -185,9 +180,7 @@ xdr_replymsg(xdrs, rmsg)
  * The rm_xid is not really static, but the user can easily munge on the fly.
  */
 bool_t
-xdr_callhdr(xdrs, cmsg)
-	register XDR *xdrs;
-	register struct rpc_msg *cmsg;
+xdr_callhdr(register XDR* xdrs, register struct rpc_msg* cmsg)
 {
 
 	cmsg->rm_direction = CALL;
@@ -268,9 +261,7 @@ rejected(rjct_stat, error)
  * given a reply message, fills in the error
  */
 void
-_seterr_reply(msg, error)
-	register struct rpc_msg *msg;
-	register struct rpc_err *error;
+_seterr_reply(register struct rpc_msg* msg, register struct rpc_err* error)
 {
 
 	/* optimized for normal, SUCCESSful case */

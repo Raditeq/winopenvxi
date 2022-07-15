@@ -75,9 +75,7 @@ static char sccsid[] = "@(#)svc_auth_unix.c 1.28 88/02/08 Copyr 1984 Sun Micro";
  * Unix longhand authenticator
  */
 enum auth_stat
-_svcauth_unix(rqst, msg)
-	register struct svc_req *rqst;
-	register struct rpc_msg *msg;
+_svcauth_unix(register struct svc_req*  rqst, register struct rpc_msg* msg)
 {
 	register enum auth_stat stat;
 	XDR xdrs;
@@ -128,7 +126,7 @@ _svcauth_unix(rqst, msg)
 		if ((u_int)((5 + gid_len) * BYTES_PER_XDR_UNIT + str_len) > auth_len) {
 #ifdef _WIN32
 			char str[256];
-			sprintf(str, "bad auth_len gid %d str %d auth %d\n",
+			sprintf_s(str, sizeof str, "bad auth_len gid %d str %d auth %d\n",
 			    gid_len, str_len, auth_len);
 			nt_rpc_report(str);
 #else

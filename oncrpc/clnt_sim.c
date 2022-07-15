@@ -72,9 +72,11 @@ static char sccsid[] = "@(#)clnt_simple.c 1.35 87/08/11 Copyr 1984 Sun Micro";
 #include <strings.h>
 #endif
 
+#define BUFFER_SIZE 256
+
 static struct callrpc_private {
 	CLIENT	*client;
-	int	socket;
+	socket_t socket;
 	int	oldprognum, oldversnum, valid;
 	char	*oldhost;
 } *callrpc_private;
@@ -97,21 +99,21 @@ callrpc(host, prognum, versnum, procnum, inproc, in, outproc, out)
 		callrpc_private = crp;
 	}
 	if (crp->oldhost == NULL) {
-		crp->oldhost = malloc(256);
-		crp->oldhost[0] = 0;
-		crp->socket = RPC_ANYSOCK;
+		crp->oldhost = malloc(BUFFER_SIZE);
+		crp->oldhost[0] = '\0';
+		crp->socket.fd = RPC_ANYSOCK;
 	}
 	if (crp->valid && crp->oldprognum == prognum && crp->oldversnum == versnum
-		&& strcmp(crp->oldhost, host) == 0) {
+		&& crp->oldhost != NULL && strcmp(crp->oldhost, host) == 0) {
 		/* reuse old client */		
 	} else {
 		crp->valid = 0;
 #ifdef _WIN32
-		(void)closesocket(crp->socket);
+		(void)closesocket(crp->socket.socket);
 #else
-		(void)close(crp->socket);
+		(void)close(crp->socket.socket);
 #endif
-		crp->socket = RPC_ANYSOCK;
+		crp->socket.fd = RPC_ANYSOCK;
 		if (crp->client) {
 			clnt_destroy(crp->client);
 			crp->client = NULL;
@@ -129,7 +131,13 @@ callrpc(host, prognum, versnum, procnum, inproc, in, outproc, out)
 		crp->valid = 1;
 		crp->oldprognum = prognum;
 		crp->oldversnum = versnum;
-		(void) strcpy(crp->oldhost, host);
+		if (crp->oldhost != NULL) {
+#ifdef _WIN32
+			strcpy_s(crp->oldhost, BUFFER_SIZE, host);
+#else
+			(void)strcpy(crp->oldhost, host);
+#endif
+		}
 	}
 	tottimeout.tv_sec = 25;
 	tottimeout.tv_usec = 0;
