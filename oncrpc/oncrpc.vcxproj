@@ -160,6 +160,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="all_oncrpc.h" />
+    <ClInclude Include="pmap_tmt.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="authunix.c" />
@@ -183,6 +184,7 @@
     <ClCompile Include="pmap_pr.c" />
     <ClCompile Include="pmap_pro.c" />
     <ClCompile Include="Pmap_rmt.c" />
+    <ClCompile Include="pmap_tmt.c" />
     <ClCompile Include="rpc_call.c" />
     <ClCompile Include="rpc_comm.c" />
     <ClCompile Include="rpc_prot.c" />

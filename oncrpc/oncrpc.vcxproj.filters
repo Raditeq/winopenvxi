@@ -18,6 +18,9 @@
     <ClInclude Include="all_oncrpc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="pmap_tmt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Auth_non.c">
@@ -135,6 +138,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pmap_pro.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pmap_tmt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

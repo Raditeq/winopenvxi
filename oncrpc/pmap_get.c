@@ -67,9 +67,7 @@ static char sccsid[] = "@(#)pmap_getport.c 1.9 87/08/11 Copyr 1984 Sun Micro";
  */
 
 #include "all_oncrpc.h"
-
-static struct timeval timeout = { 5, 0 };
-static struct timeval tottimeout = { 60, 0 };
+#include "pmap_tmt.h"
 
 /*
  * Find the mapped port for program,version.
@@ -90,14 +88,14 @@ pmap_getport(address, program, version, protocol)
 
 	address->sin_port = htons(PMAPPORT);
 	client = clntudp_bufcreate(address, PMAPPROG,
-	    PMAPVERS, timeout, &socket, RPCSMALLMSGSIZE, RPCSMALLMSGSIZE);
+	    PMAPVERS, pmap_clientTimeout, &socket, RPCSMALLMSGSIZE, RPCSMALLMSGSIZE);
 	if (client != (CLIENT *)NULL) {
 		parms.pm_prog = program;
 		parms.pm_vers = version;
 		parms.pm_prot = protocol;
 		parms.pm_port = 0;  /* not needed or used */
 		if (CLNT_CALL(client, PMAPPROC_GETPORT, xdr_pmap, &parms,
-		    xdr_u_short, &port, tottimeout) != RPC_SUCCESS){
+		    xdr_u_short, &port, pmap_totTimeout) != RPC_SUCCESS){
 			rpc_createerr.cf_stat = RPC_PMAPFAILURE;
 			clnt_geterr(client, &rpc_createerr.cf_error);
 		} else if (port == 0) {
