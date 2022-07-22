@@ -106,7 +106,7 @@ static struct clnt_ops tcp_ops = {
 };
 
 struct ct_data {
-	int		ct_sock;
+	socket_t ct_sock;
 	bool_t		ct_closeit;
 	struct timeval	ct_wait;
 	bool_t          ct_waitset;       /* wait set by clnt_control? */
@@ -132,13 +132,7 @@ struct ct_data {
  * something more useful.
  */
 CLIENT *
-clnttcp_create(raddr, prog, vers, sockp, sendsz, recvsz)
-	struct sockaddr_in *raddr;
-	u_long prog;
-	u_long vers;
-	register int *sockp;
-	u_int sendsz;
-	u_int recvsz;
+clnttcp_create(struct sockaddr_in*  raddr, u_long prog, u_long vers, socket_t * sockp, u_int sendsz, u_int recvsz)
 {
 	CLIENT *h;
 	register struct ct_data *ct = NULL;
@@ -189,28 +183,57 @@ clnttcp_create(raddr, prog, vers, sockp, sendsz, recvsz)
 	 * If no socket given, open one
 	 */
 #ifdef _WIN32
-	if (*sockp == INVALID_SOCKET) {
+	if (sockp->socket == INVALID_SOCKET) {
 		struct linger slinger;
-		
-		*sockp = socket(AF_INET, SOCK_STREAM, 0);
-		bindresvport(*sockp, (struct sockaddr_in *)0);
+
+		sockp->socket = socket(AF_INET, SOCK_STREAM, 0);
+		if (sockp->socket == INVALID_SOCKET) {
+			rpc_createerr.cf_error.re_errno = WSAerrno;
+			nt_rpc_report("clnttcp_create: could not create new socket\n");
+			goto closeSocket;
+		}
+
+		// The bind causes problems for multiple clients at the same time.
+		// There also seems to be no reason for the client to bind to
+		// a specific client port (on the machine side).
+		//bindresvport(*sockp, (struct sockaddr_in*)NULL);
 
 		slinger.l_onoff = 1;
 		slinger.l_linger = 0;
-		setsockopt(*sockp, SOL_SOCKET, SO_LINGER, (const char*)&slinger, sizeof(struct linger));
-
-		if ((*sockp == INVALID_SOCKET)
-		    || (connect(*sockp, (struct sockaddr *)raddr,
-		    sizeof(*raddr)) < 0)) {
-			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
+		if (setsockopt(sockp->socket, SOL_SOCKET, SO_LINGER, (const char*)&slinger, sizeof(struct linger)) <= SOCKET_ERROR) {
 			rpc_createerr.cf_error.re_errno = WSAerrno;
-			(void)closesocket(*sockp);
+			const char original[46] = "clnttcp_create: could not set socket options:\0";
+			char messageWithId[sizeof(original) + sizeof(sockp->socket) * 3 + 1] = "";
+			sprintf_s(messageWithId, sizeof(messageWithId), "%s%d\n", original, sockp->socket);
+			nt_rpc_report(messageWithId);
+			goto closeSocket;
+		}
+
+		if (connect(sockp->socket, (struct sockaddr*)raddr, sizeof(*raddr)) <= SOCKET_ERROR) {
+			rpc_createerr.cf_error.re_errno = WSAerrno;
+			const char original[45] = "clnttcp_create: could not connect to socket:\0";
+			char messageWithId[sizeof(original) + sizeof(sockp->socket) * 3 + 1] = "";
+			sprintf_s(messageWithId, sizeof(messageWithId), "%s%d\n", original, sockp->socket);
+			nt_rpc_report(messageWithId);
+			goto closeSocket;
+		}
+
+		if (sockp->fd == INVALID_SOCKET) {
+			closeSocket:
+			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
+			//rpc_createerr.cf_error.re_errno = WSAerrno;
+			shutdown(sockp->socket, SD_BOTH);
+			(void)closesocket(sockp->socket);
 #else
-	if (*sockp < 0) {
-		*sockp = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		(void)bindresvport(*sockp, (struct sockaddr_in *)0);
-		if ((*sockp < 0)
-		    || (connect(*sockp, (struct sockaddr *)raddr,
+	if (sockp->fd < 0) {
+		sockp->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+		// The bind causes problems for multiple clients at the same time.
+		// There also seems to be no reason for the client to bind to
+		// a specific client port (on the machine side).
+		// (void)bindresvport(sockp->socket, (struct sockaddr_in *)0);
+		if ((sockp->fd < 0)
+		    || (connect(sockp->socket, (struct sockaddr *)raddr,
 		    sizeof(*raddr)) < 0)) {
 			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 			rpc_createerr.cf_error.re_errno = errno;
@@ -242,14 +265,15 @@ clnttcp_create(raddr, prog, vers, sockp, sendsz, recvsz)
 	call_msg.rm_call.cb_vers = vers;
 
 	/*
-	 * pre-serialize the staic part of the call msg and stash it away
+	 * pre-serialize the static part of the call msg and stash it away
 	 */
 	xdrmem_create(&(ct->ct_xdrs), ct->ct_mcall, MCALL_MSG_SIZE,
 	    XDR_ENCODE);
 	if (! xdr_callhdr(&(ct->ct_xdrs), &call_msg)) {
 		if (ct->ct_closeit) {
 #ifdef _WIN32
-			(void)closesocket(*sockp);
+			shutdown(sockp->socket, SD_BOTH);
+			(void)closesocket(sockp->socket);
 #else
 			(void)close(*sockp);
 #endif
@@ -440,7 +464,8 @@ clnttcp_destroy(h)
 
 	if (ct->ct_closeit) {
 #ifdef _WIN32
-		(void)closesocket(ct->ct_sock);
+		shutdown(ct->ct_sock.socket, SD_BOTH);
+		(void)closesocket(ct->ct_sock.socket);
 #else
 		(void)close(ct->ct_sock);
 #endif
@@ -468,7 +493,7 @@ readtcp(ct, buf, len)
 	if (len == 0)
 		return (0);
 	FD_ZERO(&mask);
-	FD_SET(ct->ct_sock, &mask);
+	FD_SET(ct->ct_sock.socket, &mask);
 #else
 	register int mask = 1 << (ct->ct_sock);
 	int readfds;
@@ -495,7 +520,7 @@ readtcp(ct, buf, len)
 		}
 		break;
 	}
-	switch (len = recv(ct->ct_sock, buf, len, 0)) {
+	switch (len = recv(ct->ct_sock.socket, buf, len, 0)) {
 
 	case 0:
 		/* premature eof */
@@ -554,7 +579,7 @@ writetcp(ct, buf, len)
 
 	for (cnt = len; cnt > 0; cnt -= i, buf += i) {
 #ifdef _WIN32
-		if ((i = send(ct->ct_sock, buf, cnt, 0)) == -1) {
+		if ((i = send(ct->ct_sock.socket, buf, cnt, 0)) == -1) {
 			ct->ct_error.re_errno = WSAerrno;
 #else
 		if ((i = write(ct->ct_sock, buf, cnt)) == -1) {

@@ -69,12 +69,15 @@ getrpcport(host, prognum, versnum, proto)
 	char *host;
 {
 	struct sockaddr_in addr;
-	struct hostent *hp;
+	PADDRINFOA addressInfo = NULL;
 
-	if ((hp = gethostbyname(host)) == NULL)
+	if (getaddrinfo(host, NULL, NULL, &addressInfo) != 0 || addressInfo == NULL || addressInfo->ai_family != AF_INET) {
 		return (0);
-	bcopy(hp->h_addr, (char *) &addr.sin_addr, hp->h_length);
-	addr.sin_family = AF_INET;
+	}
+	struct sockaddr_in* address = (struct sockaddr_in*)addressInfo->ai_addr;
+	bcopy((char*)&address->sin_addr, (char *) &addr.sin_addr, sizeof(IN_ADDR));
+	addr.sin_family = addressInfo->ai_family;
+	//addr.sin_family = AF_INET;
 	addr.sin_port =  0;
 	return (pmap_getport(&addr, prognum, versnum, proto));
 }

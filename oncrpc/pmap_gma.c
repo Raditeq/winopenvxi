@@ -86,8 +86,8 @@ pmap_getmaps(address)
 	 struct sockaddr_in *address;
 {
 	struct pmaplist *head = (struct pmaplist *)NULL;
-	int socket = -1;
 	struct timeval minutetimeout;
+	socket_t socket = { .fd = RPC_ANYSOCK };
 	register CLIENT *client;
 
 	address->sin_port = htons(PMAPPORT);
@@ -101,9 +101,10 @@ pmap_getmaps(address)
 		CLNT_DESTROY(client);
 	}
 #ifdef _WIN32
-	(void)closesocket(socket);
+	shutdown(socket.socket, SD_BOTH);
+	(void)closesocket(socket.socket);
 #else
-	(void)close(socket);
+	(void)close(socket.socket);
 #endif
 	address->sin_port = 0;
 	return (head);

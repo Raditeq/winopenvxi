@@ -79,22 +79,21 @@ get_myaddress(addr)
 	struct sockaddr_in *addr;
 {
 #ifdef _WIN32
-struct hostent	*Hostent;
-char my_name[MAX_NAME_LEN];
+	char my_name[MAX_NAME_LEN];
+	PADDRINFOA addressInfo = NULL;
 
 	gethostname(my_name, MAX_NAME_LEN);
-	Hostent = gethostbyname(my_name);
+	int error = getaddrinfo(my_name, NULL, NULL, &addressInfo);
 
-	if (Hostent == NULL) {
-		errno;
+	if (error != 0 || addressInfo == NULL || addressInfo->ai_family != AF_INET) {
 		perror("Can not get host info");
-		exit (1);
+		exit(1);
 	}
 
-	addr->sin_family = AF_INET;
+	struct sockaddr_in* address = (struct sockaddr_in*)addressInfo->ai_addr;
+	addr->sin_family = addressInfo->ai_family;
 	addr->sin_port = htons(PMAPPORT);
-	bcopy((char *)Hostent->h_addr, (char *)&addr->sin_addr, 
-							Hostent->h_length);
+	bcopy((char *)&address->sin_addr, (char *)&addr->sin_addr, sizeof(IN_ADDR));
 
 #else	
 	int s;

@@ -113,7 +113,7 @@ void
 xprt_register(xprt)
 	SVCXPRT *xprt;
 {
-	register int sock = xprt->xp_sock;
+	socket_t sock = xprt->xp_sock;
 
 #ifdef FD_SETSIZE
 	if (xports == NULL) {
@@ -121,7 +121,7 @@ xprt_register(xprt)
 			mem_alloc(FD_SETSIZE * sizeof(SVCXPRT *));
 	}
 #ifdef _WIN32
-	while (sock >= sizeof_xports) {
+	while (sock.socket >= sizeof_xports) {
 		SVCXPRT **old_xports;
 
 		old_xports = xports;
@@ -133,28 +133,28 @@ xprt_register(xprt)
 
 
 	if (svc_fdset.fd_count < FD_SETSIZE) {
-		xports[sock] = xprt;
-		FD_SET(sock, &svc_fdset);
+		xports[sock.socket] = xprt;
+		FD_SET(sock.socket, &svc_fdset);
 	} else {
 		char str[256];
 		
 #ifdef _WIN32
-		sprintf_s(str, sizeof(str), "too many connections (%d), compilation constant FD_SETSIZE was only %d", sock, FD_SETSIZE);
+		sprintf_s(str, sizeof(str), "too many connections (%d), compilation constant FD_SETSIZE was only %d", sock.fd, FD_SETSIZE);
 #else
-		snprintf(str, sizeof(str), "too many connections (%d), compilation constant FD_SETSIZE was only %d", sock, FD_SETSIZE);
+		snprintf(str, sizeof(str), "too many connections (%d), compilation constant FD_SETSIZE was only %d", sock.fd, FD_SETSIZE);
 #endif
 		nt_rpc_report(str);
 	}
 #else
 	if (sock < _rpc_dtablesize()) {
-		xports[sock] = xprt;
-		FD_SET(sock, &svc_fdset);
+		xports[sock.socket] = xprt;
+		FD_SET(sock.socket, &svc_fdset);
 	}
 #endif
 #else
-	if (sock < NOFILE) {
-		xports[sock] = xprt;
-		svc_fds |= (1 << sock);
+	if (sock.fd < NOFILE) {
+		xports[sock.socket] = xprt;
+		svc_fds |= (1 << sock.socket);
 	}
 #endif /* def FD_SETSIZE */
 
@@ -167,22 +167,22 @@ void
 xprt_unregister(xprt) 
 	SVCXPRT *xprt;
 { 
-	register int sock = xprt->xp_sock;
+	socket_t sock = xprt->xp_sock;
 
 #ifdef FD_SETSIZE
 #ifdef _WIN32
-	if ((xports[sock] == xprt)) {
-		xports[sock] = (SVCXPRT *)0;
-		FD_CLR((unsigned)sock, &svc_fdset);
+	if ((xports[sock.socket] == xprt)) {
+		xports[sock.socket] = (SVCXPRT *)0;
+		FD_CLR(sock.socket, &svc_fdset);
 #else
-	if ((sock < _rpc_dtablesize()) && (xports[sock] == xprt)) {
-		xports[sock] = (SVCXPRT *)0;
-		FD_CLR(sock, &svc_fdset);
+	if ((sock < _rpc_dtablesize()) && (xports[sock.socket] == xprt)) {
+		xports[sock.socket] = (SVCXPRT *)0;
+		FD_CLR(sock.socket, &svc_fdset);
 #endif
 	}
 #else
-	if ((sock < NOFILE) && (xports[sock] == xprt)) {
-		xports[sock] = (SVCXPRT *)0;
+	if ((sock < NOFILE) && (xports[sock.socket] == xprt)) {
+		xports[sock.socket] = (SVCXPRT *)0;
 		svc_fds &= ~(1 << sock);
 	}
 #endif /* def FD_SETSIZE */

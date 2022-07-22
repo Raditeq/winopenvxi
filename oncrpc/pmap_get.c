@@ -82,7 +82,7 @@ pmap_getport(address, program, version, protocol)
 	u_int protocol;
 {
 	u_short port = 0;
-	int socket = -1;
+	socket_t socket = { .fd = RPC_ANYSOCK };
 	register CLIENT *client;
 	struct pmap parms;
 
@@ -94,6 +94,7 @@ pmap_getport(address, program, version, protocol)
 		parms.pm_vers = version;
 		parms.pm_prot = protocol;
 		parms.pm_port = 0;  /* not needed or used */
+
 		if (CLNT_CALL(client, PMAPPROC_GETPORT, xdr_pmap, &parms,
 		    xdr_u_short, &port, pmap_totTimeout) != RPC_SUCCESS){
 			rpc_createerr.cf_stat = RPC_PMAPFAILURE;
@@ -103,7 +104,7 @@ pmap_getport(address, program, version, protocol)
 		}
 		CLNT_DESTROY(client);
 	}
-	(void)closesocket(socket);
+	(void)closesocket(socket.socket);
 	address->sin_port = 0;
 	return (port);
 }
