@@ -138,7 +138,11 @@ xprt_register(xprt)
 	} else {
 		char str[256];
 		
-		sprintf(str, "too many connections (%d), compilation constant FD_SETSIZE was only %d", sock, FD_SETSIZE);
+#ifdef _WIN32
+		sprintf_s(str, sizeof(str), "too many connections (%d), compilation constant FD_SETSIZE was only %d", sock, FD_SETSIZE);
+#else
+		snprintf(str, sizeof(str), "too many connections (%d), compilation constant FD_SETSIZE was only %d", sock, FD_SETSIZE);
+#endif
 		nt_rpc_report(str);
 	}
 #else

@@ -118,7 +118,7 @@ xdr_pmaplist(xdrs, rp)
 	 */
 	bool_t more_elements;
 	register int freeing = (xdrs->x_op == XDR_FREE);
-	register struct pmaplist **next;
+	register struct pmaplist **next = NULL;
 
 	while (TRUE) {
 		more_elements = (bool_t)(*rp != NULL);

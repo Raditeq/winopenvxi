@@ -93,7 +93,8 @@ static	char *index();
 #endif
 
 #ifdef _WIN32
-static char RPCDB[1024];
+#define RPCDB_BUFFER_SIZE 1024
+static char RPCDB[RPCDB_BUFFER_SIZE];
 #else
 static char RPCDB[] = "/etc/rpc";
 #endif
@@ -104,10 +105,19 @@ setrpcent(f)
 {
 	register struct rpcdata *d = _rpcdata();
 
-	if (d == 0)
+	if (d == 0) {
 		return;
-	if (d->rpcf == NULL)
+	}
+	if (d->rpcf == NULL) {
+#ifdef _WIN32
+		errno_t error = fopen_s(&d->rpcf, RPCDB, "r");
+		if (error != 0) {
+			nt_rpc_report("Could not open file");
+		}
+#else
 		d->rpcf = fopen(RPCDB, "r");
+#endif
+	}
 	else
 		rewind(d->rpcf);
 	if (d->current)
@@ -141,7 +151,13 @@ getrpcent()
 
 	if (d == 0)
 		return(NULL);
-	if (d->rpcf == NULL && (d->rpcf = fopen(RPCDB, "r")) == NULL)
+	if (d->rpcf == NULL &&
+#ifdef _WIN32
+		fopen_s(&d->rpcf, RPCDB, "r") != 0
+#else
+		(d->rpcf = fopen(RPCDB, "r")) == NULL
+#endif
+		)
 		return (NULL);
     if (fgets(d->line, BUFSIZ, d->rpcf) == NULL)
 		return (NULL);
@@ -156,9 +172,14 @@ interpret(val, len)
 	char *p;
 	register char *cp, **q;
 
-	if (d == 0)
+	if (d == 0) {
 		return NULL;
+	}
+#ifdef _WIN32
+	strncpy_s(d->line, BUFSIZ + 1, val, len);
+#else
 	strncpy(d->line, val, len);
+#endif
 	p = d->line;
 	d->line[len] = '\n';
 	if (*p == '#')
@@ -223,9 +244,9 @@ _rpcdata()
 #ifdef _WIN32
 	char *str;
 
-	if ((RPCDB[0] == '\0') && (str = getenv("SystemRoot"))) {
-		strcpy(RPCDB, str);
-		strcat(RPCDB, "\\system32\\drivers\\etc\\rpc");
+	if ((RPCDB[0] == '\0') && (_dupenv_s(&str, RPCDB_BUFFER_SIZE, "Systemroot"))) {
+		strcpy_s(RPCDB, RPCDB_BUFFER_SIZE, str);
+		strcat_s(RPCDB, RPCDB_BUFFER_SIZE, "\\system32\\drivers\\etc\\rpc");
 	}
 #endif
 	

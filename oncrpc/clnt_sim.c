@@ -96,8 +96,9 @@ callrpc(host, prognum, versnum, procnum, inproc, in, outproc, out)
 			return (0);
 		callrpc_private = crp;
 	}
+	const size_t oldhostSize = 256;
 	if (crp->oldhost == NULL) {
-		crp->oldhost = malloc(256);
+		crp->oldhost = malloc(oldhostSize);
 		crp->oldhost[0] = 0;
 		crp->socket = RPC_ANYSOCK;
 	}
@@ -129,7 +130,11 @@ callrpc(host, prognum, versnum, procnum, inproc, in, outproc, out)
 		crp->valid = 1;
 		crp->oldprognum = prognum;
 		crp->oldversnum = versnum;
-		(void) strcpy(crp->oldhost, host);
+#ifdef _WIN32
+		strcpy_s(crp->oldhost, oldhostSize, host);
+#else
+		strncpy(crp->oldhost, host, oldhostSize);
+#endif
 	}
 	tottimeout.tv_sec = 25;
 	tottimeout.tv_usec = 0;
