@@ -18,7 +18,7 @@ int main(int argc, char** argv)
     CLIENT* VXI11Client = 0;
 
     if (argc > 1) {
-        strncpy(host, argv[1], sizeof(host));
+        strcpy_s(host, sizeof(host), argv[1]);
     }
     for (int n = 0, a = 2; a < argc && n < sizeof(DataWrite) - 2; a += 1) {
         snprintf(DataWrite + n, sizeof(DataWrite) - n - 2, " %s\n", argv[a]);
@@ -76,7 +76,7 @@ int main(int argc, char** argv)
         toret = -1;
         goto End;
     }
-    strncpy(DataRead, rresp->data.data_val, rresp->data.data_len);
+    strncpy_s(DataRead, sizeof(DataRead), rresp->data.data_val, rresp->data.data_len);
     DataRead[rresp->data.data_len] = 0;
 
     printf("%s> %s\n", host, DataRead);

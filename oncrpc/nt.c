@@ -54,7 +54,7 @@ int rpc_nt_exit(void)
 VOID
 nt_rpc_report(LPTSTR lpszMsg)
 {
-    CHAR    chMsg[256];
+    LPTSTR chMsg[256];
     HANDLE  hEventSource;
     LPTSTR  lpszStrings[2];
 
@@ -63,7 +63,11 @@ nt_rpc_report(LPTSTR lpszMsg)
     hEventSource = RegisterEventSource(NULL,
                             TEXT("rpc.dll"));
 
-    sprintf(chMsg, "sunrpc report: %d", GetLastError());
+#ifdef UNICODE
+    swprintf_s(chMsg, sizeof(chMsg), L"sunrpc report: %d", GetLastError());
+#else
+    sprintf_s(chMsg, sizeof(chMsg), "sunrpc report: %d", GetLastError());
+#endif
     lpszStrings[0] = chMsg;
     lpszStrings[1] = lpszMsg;
 

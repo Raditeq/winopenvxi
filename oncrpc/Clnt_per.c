@@ -73,16 +73,15 @@ extern char *sprintf();
 #endif
 static char *auth_errmsg();
 
-extern char *strcpy();
-
-static char *buf;
+static char *buf = NULL;
+#define BUFFER_SIZE (256)
 
 static char *
 _buf()
 {
 
 	if (buf == 0)
-		buf = (char *)malloc(256);
+		buf = (char *)malloc(BUFFER_SIZE);
 	return (buf);
 }
 
@@ -104,10 +103,18 @@ clnt_sperror(rpch, s)
 		return (0);
 	CLNT_GETERR(rpch, &e);
 
-	(void) sprintf(str, "%s: ", s);
+#ifdef _WIN32
+	sprintf_s(str, BUFFER_SIZE, "%s: ", s);
+#else
+	snprintf(str, BUFFER_SIZE, "%s: ", s);
+#endif
 	str += strlen(str);
 
-	(void) strcpy(str, clnt_sperrno(e.re_status));
+#ifdef _WIN32
+	strcpy_s(str, BUFFER_SIZE, clnt_sperrno(e.re_status));
+#else
+	strncpy(str, clnt_sperrno(e.re_status), BUFFER_SIZE);
+#endif
 	str += strlen(str);
 
 	switch (e.re_status) {
@@ -129,53 +136,93 @@ clnt_sperror(rpch, s)
 	case RPC_CANTSEND:
 	case RPC_CANTRECV:
 #ifdef _WIN32
-		if (e.re_errno < sys_nerr)
-#endif
-			(void) sprintf(str, "; errno = %s",
-			    sys_errlist[e.re_errno]);
-#ifdef _WIN32
-		else
-			(void) sprintf(str, "Error %d, ", e.re_errno);
+		; // empty statement because declaration is not allowed after a label
+		char errorBuffer[BUFFER_SIZE];
+		if (strerror_s(errorBuffer, BUFFER_SIZE, e.re_errno) == 0) {
+			sprintf_s(str, BUFFER_SIZE, "; errno = %s", errorBuffer);
+		}
+		else {
+			sprintf_s(str, BUFFER_SIZE, "Error %d, ", e.re_errno);
+		}
+#else
+		snprintf(str, BUFFER_SIZE, "; errno = %s",
+			sys_errlist[e.re_errno]);
 #endif
 		str += strlen(str);
 		break;
 
 	case RPC_VERSMISMATCH:
-		(void) sprintf(str,
+#ifdef _WIN32
+		sprintf_s(str, BUFFER_SIZE,
 			"; low version = %lu, high version = %lu",
 			e.re_vers.low, e.re_vers.high);
+#else
+		snprintf(str, BUFFER_SIZE,
+			"; low version = %lu, high version = %lu",
+			e.re_vers.low, e.re_vers.high);
+#endif
 		str += strlen(str);
 		break;
 
 	case RPC_AUTHERROR:
 		err = auth_errmsg(e.re_why);
-		(void) sprintf(str,"; why = ");
+#ifdef _WIN32
+		sprintf_s(str, BUFFER_SIZE, "; why = ");
+#else
+		snprintf(str, BUFFER_SIZE, "; why = ");
+#endif
 		str += strlen(str);
 		if (err != NULL) {
-			(void) sprintf(str, "%s",err);
+#ifdef _WIN32
+			sprintf_s(str, BUFFER_SIZE, "%s",err);
+#else
+			snprintf(str, BUFFER_SIZE, "%s",err);
+#endif
 		} else {
-			(void) sprintf(str,
+#ifdef _WIN32
+			sprintf_s(str, BUFFER_SIZE,
 				"(unknown authentication error - %d)",
 				(int) e.re_why);
+#else
+			snprintf(str, BUFFER_SIZE,
+				"(unknown authentication error - %d)",
+				(int) e.re_why);
+#endif
 		}
 		str += strlen(str);
 		break;
 
 	case RPC_PROGVERSMISMATCH:
-		(void) sprintf(str,
+#ifdef _WIN32
+		sprintf_s(str, BUFFER_SIZE,
 			"; low version = %lu, high version = %lu",
 			e.re_vers.low, e.re_vers.high);
+#else
+		snprintf(str, BUFFER_SIZE,
+			"; low version = %lu, high version = %lu",
+			e.re_vers.low, e.re_vers.high);
+#endif
 		str += strlen(str);
 		break;
 
 	default:	/* unknown */
-		(void) sprintf(str,
+#ifdef _WIN32
+		sprintf_s(str, BUFFER_SIZE,
 			"; s1 = %lu, s2 = %lu",
 			e.re_lb.s1, e.re_lb.s2);
+#else
+		snprintf(str, BUFFER_SIZE,
+			"; s1 = %lu, s2 = %lu",
+			e.re_lb.s1, e.re_lb.s2);
+#endif
 		str += strlen(str);
 		break;
 	}
-	(void) sprintf(str, "\n");
+#ifdef _WIN32
+	sprintf_s(str, BUFFER_SIZE, "\n");
+#else
+	snprintf(str, BUFFER_SIZE, "\n");
+#endif
 	return(strstart) ;
 }
 
@@ -276,33 +323,62 @@ clnt_spcreateerror(s)
 #endif
 	char *str = _buf();
 
-	if (str == 0)
+	if (str == 0) {
 		return(0);
-	(void) sprintf(str, "%s: ", s);
-	(void) strcat(str, clnt_sperrno(rpc_createerr.cf_stat));
+	}
+#ifdef _WIN32
+	sprintf_s(str, BUFFER_SIZE, "%s: ", s);
+	strcat_s(str, BUFFER_SIZE, clnt_sperrno(rpc_createerr.cf_stat));
+#else
+	snprintf(str, BUFFER_SIZE, "%s: ", s);
+	strncat(str, clnt_sperrno(rpc_createerr.cf_stat), BUFFER_SIZE);
+#endif
 	switch (rpc_createerr.cf_stat) {
 	case RPC_PMAPFAILURE:
-		(void) strcat(str, " - ");
-		(void) strcat(str,
+#ifdef _WIN32
+		strcat_s(str, BUFFER_SIZE, " - ");
+		strcat_s(str, BUFFER_SIZE,
 		    clnt_sperrno(rpc_createerr.cf_error.re_status));
+#else
+		strncat(str, " - ", BUFFER_SIZE);
+		strncat(str, clnt_sperrno(rpc_createerr.cf_error.re_status), BUFFER_SIZE);
+#endif
 		break;
 
 	case RPC_SYSTEMERROR:
-		(void) strcat(str, " - ");
-		if (rpc_createerr.cf_error.re_errno > 0
-		    && rpc_createerr.cf_error.re_errno < sys_nerr)
-			(void) strcat(str,
 #ifdef _WIN32
-			    "internal rpc error");
+		strcat_s(str, BUFFER_SIZE, " - ");
 #else
-			    sys_errlist[rpc_createerr.cf_error.re_errno]);
+		strncat(str, " - ", BUFFER_SIZE);
 #endif
-		else
-			(void) sprintf(&str[strlen(str)], "Error %d",
+		if (rpc_createerr.cf_error.re_errno > 0
+			&& rpc_createerr.cf_error.re_errno < sys_nerr) {
+
+#ifdef _WIN32
+			strcat_s(str, BUFFER_SIZE,
+				"internal rpc error");
+#else
+			strncat(str, sys_errlist[rpc_createerr.cf_error.re_errno],
+				BUFFER_SIZE);
+#endif
+		} else {
+			size_t length = strlen(str);
+
+#ifdef _WIN32
+			sprintf_s(&str[length], BUFFER_SIZE - length, "Error %d",
 			    rpc_createerr.cf_error.re_errno);
+#else
+			snprintf(&str[length], BUFFER_SIZE, "Error %d",
+				rpc_createerr.cf_error.re_errno);
+#endif
+		}
 		break;
 	}
-	(void) strcat(str, "\n");
+#ifdef _WIN32
+	strcat_s(str, BUFFER_SIZE, "\n");
+#else
+	strncat(str, "\n", BUFFER_SIZE);
+#endif
 	return (str);
 }
 
