@@ -61,7 +61,7 @@ struct Create_LinkParms {
 	long clientId;
 	bool_t lockDevice;
 	u_long lock_timeout;
-	char *device;
+	const char *device;
 };
 typedef struct Create_LinkParms Create_LinkParms;
 #ifdef __cplusplus
@@ -96,7 +96,7 @@ struct Device_WriteParms {
 	Device_Flags flags;
 	struct {
 		u_int data_len;
-		char *data_val;
+		const char *data_val;
 	} data;
 };
 typedef struct Device_WriteParms Device_WriteParms;
@@ -146,7 +146,7 @@ struct Device_ReadResp {
 	long reason;
 	struct {
 		u_int data_len;
-		char *data_val;
+		const char *data_val;
 	} data;
 };
 typedef struct Device_ReadResp Device_ReadResp;
@@ -211,7 +211,7 @@ struct Device_EnableSrqParms {
 	bool_t enable;
 	struct {
 		u_int handle_len;
-		char *handle_val;
+		const char *handle_val;
 	} handle;
 };
 typedef struct Device_EnableSrqParms Device_EnableSrqParms;
@@ -249,7 +249,7 @@ struct Device_DocmdParms {
 	long datasize;
 	struct {
 		u_int data_in_len;
-		char *data_in_val;
+		const char *data_in_val;
 	} data_in;
 };
 typedef struct Device_DocmdParms Device_DocmdParms;
@@ -266,7 +266,7 @@ struct Device_DocmdResp {
 	Device_ErrorCode error;
 	struct {
 		u_int data_out_len;
-		char *data_out_val;
+		const char *data_out_val;
 	} data_out;
 };
 typedef struct Device_DocmdResp Device_DocmdResp;
@@ -296,26 +296,26 @@ DllExport extern Device_Error *device_abort_1();
 #define create_link ((u_long)10)
 #ifdef __cplusplus
 extern "C" {
-DllExport Create_LinkResp *create_link_1(...);
+DllExport Create_LinkResp *create_link_1(Create_LinkParms* argp, CLIENT* clnt);
 }
 #else
-DllExport Create_LinkResp *create_link_1();
+DllExport Create_LinkResp *create_link_1(Create_LinkParms* argp, CLIENT* clnt);
 #endif /* __cplusplus */
 #define device_write ((u_long)11)
 #ifdef __cplusplus
 extern "C" {
-DllExport extern Device_WriteResp *device_write_1(...);
+DllExport extern Device_WriteResp *device_write_1(Device_WriteParms* argp, CLIENT* clnt);
 }
 #else
-DllExport extern Device_WriteResp *device_write_1();
+DllExport extern Device_WriteResp *device_write_1(Device_WriteParms* argp, CLIENT* clnt);
 #endif /* __cplusplus */
 #define device_read ((u_long)12)
 #ifdef __cplusplus
 extern "C" {
-DllExport extern Device_ReadResp *device_read_1(...);
+DllExport extern Device_ReadResp *device_read_1(Device_ReadParms* argp, CLIENT* clnt);
 }
 #else
-DllExport extern Device_ReadResp *device_read_1();
+DllExport extern Device_ReadResp *device_read_1(Device_ReadParms* argp, CLIENT* clnt);
 #endif /* __cplusplus */
 #define device_readstb ((u_long)13)
 #ifdef __cplusplus
@@ -344,34 +344,34 @@ DllExport extern Device_Error *device_clear_1();
 #define device_remote ((u_long)16)
 #ifdef __cplusplus
 extern "C" {
-DllExport extern Device_Error *device_remote_1(...);
+DllExport extern Device_Error *device_remote_1(Device_GenericParms* argp, CLIENT* clnt);
 }
 #else
-DllExport extern Device_Error *device_remote_1();
+DllExport extern Device_Error *device_remote_1(Device_GenericParms* argp, CLIENT* clnt);
 #endif /* __cplusplus */
 #define device_local ((u_long)17)
 #ifdef __cplusplus
 extern "C" {
-DllExport extern Device_Error *device_local_1(...);
+DllExport extern Device_Error *device_local_1(Device_GenericParms* argp, CLIENT* clnt);
 }
 #else
-DllExport extern Device_Error *device_local_1();
+DllExport extern Device_Error *device_local_1(Device_GenericParms* argp, CLIENT* clnt);
 #endif /* __cplusplus */
 #define device_lock ((u_long)18)
 #ifdef __cplusplus
 extern "C" {
-DllExport extern Device_Error *device_lock_1(...);
+DllExport extern Device_Error *device_lock_1(Device_LockParms* argp, CLIENT* clnt);
 }
 #else
-DllExport extern Device_Error *device_lock_1();
+DllExport extern Device_Error *device_lock_1(Device_LockParms* argp, CLIENT* clnt);
 #endif /* __cplusplus */
 #define device_unlock ((u_long)19)
 #ifdef __cplusplus
 extern "C" {
-DllExport extern Device_Error *device_unlock_1(...);
+DllExport extern Device_Error *device_unlock_1(Device_Link* argp, CLIENT* clnt);
 }
 #else
-extern Device_Error *device_unlock_1();
+DllExport extern Device_Error *device_unlock_1(Device_Link* argp, CLIENT* clnt);
 #endif /* __cplusplus */
 #define device_enable_srq ((u_long)20)
 #ifdef __cplusplus
@@ -392,10 +392,10 @@ extern Device_DocmdResp *device_docmd_1();
 #define destroy_link ((u_long)23)
 #ifdef __cplusplus
 extern "C" {
-DllExport Device_Error *destroy_link_1(...);
+DllExport Device_Error *destroy_link_1(Device_Link* argp, CLIENT* clnt);
 }
 #else
-DllExport Device_Error *destroy_link_1();
+DllExport Device_Error *destroy_link_1(Device_Link* argp, CLIENT* clnt);
 #endif /* __cplusplus */
 #define create_intr_chan ((u_long)25)
 #ifdef __cplusplus

@@ -68,6 +68,7 @@ static char sccsid[] = "@(#)pmap_getmaps.c 1.10 87/08/11 Copyr 1984 Sun Micro";
  */
 
 #include "all_oncrpc.h"
+#include "pmap_tmt.h"
 
 #define NAMELEN 255
 #define MAX_BROADCAST_SIZE 1400
@@ -89,14 +90,12 @@ pmap_getmaps(address)
 	struct timeval minutetimeout;
 	register CLIENT *client;
 
-	minutetimeout.tv_sec = 60;
-	minutetimeout.tv_usec = 0;
 	address->sin_port = htons(PMAPPORT);
 	client = clnttcp_create(address, PMAPPROG,
 	    PMAPVERS, &socket, 50, 500);
 	if (client != (CLIENT *)NULL) {
 		if (CLNT_CALL(client, PMAPPROC_DUMP, xdr_void, NULL, xdr_pmaplist,
-		    &head, minutetimeout) != RPC_SUCCESS) {
+		    &head, pmap_totTimeout) != RPC_SUCCESS) {
 			clnt_perror(client, "pmap_getmaps rpc problem");
 		}
 		CLNT_DESTROY(client);

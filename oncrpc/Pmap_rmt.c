@@ -67,15 +67,13 @@ static char sccsid[] = "@(#)pmap_rmt.c 1.21 87/08/27 Copyr 1984 Sun Micro";
  */
 
 #include "all_oncrpc.h"
+#include "pmap_tmt.h"
 
 #define MAX_BROADCAST_SIZE 1400
 
 #ifndef _WIN32
 extern int errno;
 #endif
-
-
-static struct timeval timeout = { 3, 0 };
 
 
 /*
@@ -101,7 +99,7 @@ pmap_rmtcall(addr, prog, vers, proc, xdrargs, argsp, xdrres, resp, tout, port_pt
 	enum clnt_stat stat;
 
 	addr->sin_port = htons(PMAPPORT);
-	client = clntudp_create(addr, PMAPPROG, PMAPVERS, timeout, &socket);
+	client = clntudp_create(addr, PMAPPROG, PMAPVERS, pmap_clientTimeout, &socket);
 	if (client != (CLIENT *)NULL) {
 		a.prog = prog;
 		a.vers = vers;
