@@ -76,19 +76,20 @@ clnt_create(hostname, prog, vers, proto)
 	unsigned vers;
 	char *proto;
 {
-	struct hostent *h;
 	struct protoent *p;
 	struct sockaddr_in sin;
-	int sock;
+	socket_t sock = { .fd = RPC_ANYSOCK };
 	struct timeval tv;
 	CLIENT *client;
+	struct addrinfo* addressInfo = NULL;
 
-	h = gethostbyname(hostname);
-	if (h == NULL) {
+	int error = getaddrinfo(hostname, NULL, NULL, &addressInfo);
+
+	if (error != 0 || addressInfo == NULL) {
 		rpc_createerr.cf_stat = RPC_UNKNOWNHOST;
 		return (NULL);
 	}
-	if (h->h_addrtype != AF_INET) {
+	if (addressInfo->ai_family != AF_INET) {
 		/*
 		 * Only support INET for now
 		 */
@@ -100,10 +101,11 @@ clnt_create(hostname, prog, vers, proto)
 #endif
 		return (NULL);
 	}
-	sin.sin_family = h->h_addrtype;
+	sin.sin_family = addressInfo->ai_family;
 	sin.sin_port = 0;
 	bzero(sin.sin_zero, sizeof(sin.sin_zero));
-	bcopy(h->h_addr, (char*)&sin.sin_addr, h->h_length);
+	struct sockaddr_in* address = (struct sockaddr_in*)addressInfo->ai_addr;
+	bcopy((char*)&address->sin_addr, (char*)&sin.sin_addr, sizeof(IN_ADDR));
 	p = getprotobyname(proto);
 	if (p == NULL) {
 		rpc_createerr.cf_stat = RPC_UNKNOWNPROTO;
@@ -114,7 +116,7 @@ clnt_create(hostname, prog, vers, proto)
 #endif 
 		return (NULL);
 	}
-	sock = RPC_ANYSOCK;
+	sock.fd = RPC_ANYSOCK;
 	switch (p->p_proto) {
 	case IPPROTO_UDP:
 		tv.tv_sec = 5;

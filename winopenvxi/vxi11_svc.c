@@ -17,7 +17,8 @@ void vxi11_svc_main()
 	(void)pmap_unset(DEVICE_ASYNC, DEVICE_ASYNC_VERSION);
 	(void)pmap_unset(DEVICE_CORE, DEVICE_CORE_VERSION);
 
-	transp = svcudp_create(RPC_ANYSOCK);
+	socket_t socket = { .fd = RPC_ANYSOCK };
+	transp = svcudp_create(socket);
 	if (transp == NULL) {
 		(void)fprintf(stderr, "cannot create udp service.\n");
 #ifdef _WIN32

@@ -71,8 +71,10 @@
 #define DllImport	__declspec( dllimport )
 
 #include <stdlib.h>
-#include <windows.h>
-#include <winsock.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <Windows.h>
+#include <stdio.h>
 #include <rpc/types.h>		/* some typedefs */
 #include <process.h>
 #include <rpc/bcopy.h>

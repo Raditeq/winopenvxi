@@ -92,7 +92,7 @@ pmap_rmtcall(addr, prog, vers, proc, xdrargs, argsp, xdrres, resp, tout, port_pt
 	struct timeval tout;
 	u_long *port_ptr;
 {
-	int socket = -1;
+	socket_t socket = { .fd = RPC_ANYSOCK };
 	register CLIENT *client;
 	struct rmtcallargs a;
 	struct rmtcallres r;
@@ -116,9 +116,9 @@ pmap_rmtcall(addr, prog, vers, proc, xdrargs, argsp, xdrres, resp, tout, port_pt
 		stat = RPC_FAILED;
 	}
 #ifdef _WIN32
-	(void)closesocket(socket);
+	(void)closesocket(socket.socket);
 #else
-	(void)close(socket);
+	(void)close(socket.socket);
 #endif
 	addr->sin_port = 0;
 	return (stat);
@@ -254,8 +254,9 @@ clnt_broadcast(prog, vers, proc, xargs, argsp, xresults, resultsp, eachresult)
 	AUTH *unix_auth = authunix_create_default();
 	XDR xdr_stream;
 	register XDR *xdrs = &xdr_stream;
-	int outlen, inlen, fromlen, nets;
-	register int sock;
+	size_t outlen, nets;
+	int inlen, fromlen;
+	socket_t sock = { .fd = RPC_ANYSOCK };
 	int on = 1;
 #ifdef FD_SETSIZE
 	fd_set mask;
@@ -281,16 +282,16 @@ clnt_broadcast(prog, vers, proc, xargs, argsp, xresults, resultsp, eachresult)
 	 * preserialize the arguments into a send buffer.
 	 */
 #ifdef _WIN32
-	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
+	if ((sock.socket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
 #else
-	if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+	if ((sock.socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 #endif
 		perror("Cannot create socket for broadcast rpc");
 		stat = RPC_CANTSEND;
 		goto done_broad;
 	}
 #ifdef SO_BROADCAST
-	if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const char*)&on, sizeof (int)) < 0) {
+	if (setsockopt(sock.socket, SOL_SOCKET, SO_BROADCAST, (const char*)&on, sizeof (int)) < 0) {
 		perror("Cannot set socket option SO_BROADCAST");
 		stat = RPC_CANTSEND;
 		goto done_broad;
@@ -298,9 +299,9 @@ clnt_broadcast(prog, vers, proc, xargs, argsp, xresults, resultsp, eachresult)
 #endif /* def SO_BROADCAST */
 #ifdef FD_SETSIZE
 	FD_ZERO(&mask);
-	FD_SET(sock, &mask);
+	FD_SET(sock.socket, &mask);
 #else
-	mask = (1 << sock);
+	mask = (1 << sock.socket);
 #endif /* def FD_SETSIZE */
 	nets = getbroadcastnets(addrs, sock, inbuf);
 	bzero((char *)&baddr, sizeof (baddr));
@@ -344,7 +345,7 @@ clnt_broadcast(prog, vers, proc, xargs, argsp, xresults, resultsp, eachresult)
 	for (t.tv_sec = 4; t.tv_sec <= 14; t.tv_sec += 2) {
 		for (i = 0; i < nets; i++) {
 			baddr.sin_addr = addrs[i];
-			if (sendto(sock, outbuf, outlen, 0,
+			if (sendto(sock.socket, outbuf, outlen, 0,
 				(struct sockaddr *)&baddr,
 				sizeof (struct sockaddr)) != outlen) {
 				perror("Cannot send broadcast packet");
@@ -386,7 +387,7 @@ clnt_broadcast(prog, vers, proc, xargs, argsp, xresults, resultsp, eachresult)
 		}  /* end of select results switch */
 	try_again:
 		fromlen = sizeof(struct sockaddr);
-		inlen = recvfrom(sock, inbuf, UDPMSGSIZE, 0,
+		inlen = recvfrom(sock.socket, inbuf, UDPMSGSIZE, 0,
 			(struct sockaddr *)&raddr, &fromlen);
 		if (inlen < 0) {
 #ifdef _WIN32
@@ -440,9 +441,9 @@ clnt_broadcast(prog, vers, proc, xargs, argsp, xresults, resultsp, eachresult)
 	}
 done_broad:
 #ifdef _WIN32
-	(void)closesocket(sock);
+	(void)closesocket(sock.socket);
 #else
-	(void)close(sock);
+	(void)close(sock.socket);
 #endif
 	AUTH_DESTROY(unix_auth);
 	return (stat);

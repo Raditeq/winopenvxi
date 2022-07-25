@@ -97,7 +97,7 @@ enum xprt_stat {
  * Server side transport handle
  */
 typedef struct {
-	int		xp_sock;
+	socket_t xp_sock;
 	u_short		xp_port;	 /* associated port number */
 	struct xp_ops {
 	    bool_t	(*xp_recv)();	 /* receive incomming requests */
@@ -307,8 +307,8 @@ DllExport SVCXPRT *svcraw_create();
 /*
  * Udp based rpc.
  */
-DllExport SVCXPRT *svcudp_create();
-DllExport SVCXPRT *svcudp_bufcreate();
+DllExport SVCXPRT *svcudp_create(socket_t sock);
+DllExport SVCXPRT *svcudp_bufcreate(socket_t sock, u_int sendsz, u_int recvsz);
 
 /*
  * Tcp based rpc.

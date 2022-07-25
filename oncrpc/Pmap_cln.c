@@ -82,7 +82,7 @@ pmap_set(program, version, protocol, port)
 	u_short port;
 {
 	struct sockaddr_in myaddress;
-	int socket = -1;
+	socket_t socket = { .fd = RPC_ANYSOCK };
 	register CLIENT *client;
 	struct pmap parms;
 	bool_t rslt;
@@ -103,9 +103,9 @@ pmap_set(program, version, protocol, port)
 	}
 	CLNT_DESTROY(client);
 #ifdef _WIN32
-	(void)closesocket(socket);
+	(void)closesocket(socket.socket);
 #else
-	(void)close(socket);
+	(void)close(socket.socket);
 #endif
 	return (rslt);
 }
@@ -120,7 +120,7 @@ pmap_unset(program, version)
 	u_long version;
 {
 	struct sockaddr_in myaddress;
-	int socket = -1;
+	socket_t socket = { .fd = RPC_ANYSOCK };
 	register CLIENT *client;
 	struct pmap parms;
 	bool_t rslt;
@@ -137,9 +137,9 @@ pmap_unset(program, version)
 		pmap_totTimeout);
 	CLNT_DESTROY(client);
 #ifdef _WIN32
-	(void)closesocket(socket);
+	(void)closesocket(socket.socket);
 #else
-	(void)close(socket);
+	(void)close(socket.socket);
 #endif
 	return (rslt);
 }

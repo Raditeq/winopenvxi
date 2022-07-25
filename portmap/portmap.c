@@ -90,13 +90,13 @@ static int debug = 0;
 portmap_main()
 {
 	SVCXPRT *xprt;
-	int sock, pid, t;
+	socket_t sock = { .fd = RPC_ANYSOCK };
 	struct sockaddr_in addr;
 	int len = sizeof(struct sockaddr_in);
 
 #if 0
 	if (!debug) {
-		pid = daemon(0,0);	/* from libutil */
+		int pid = daemon(0,0);	/* from libutil */
 		if (pid < 0) {
 			perror("portmap: fork");
 			exit(1);
@@ -112,7 +112,7 @@ portmap_main()
 	}
 	
 
-	if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
+	if ((sock.socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
 		fprintf(stderr, "cannot create socket\n");
 		exit(1);
 	}
@@ -120,7 +120,7 @@ portmap_main()
 	addr.sin_addr.s_addr = 0;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(PMAPPORT);
-	if (bind(sock, (struct sockaddr *)&addr, len) != 0) {
+	if (bind(sock.socket, (struct sockaddr *)&addr, len) != 0) {
 		fprintf(stderr, "cannot bind\n");
 		exit(1);
 	}
@@ -130,11 +130,11 @@ portmap_main()
 		exit(1);
 	}
 
-	if ((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+	if ((sock.socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
 		fprintf(stderr, "cannot create socket\n");
 		exit(1);
 	}
-	if (bind(sock, (struct sockaddr *)&addr, len) != 0) {
+	if (bind(sock.socket, (struct sockaddr *)&addr, len) != 0) {
 		fprintf(stderr, "cannot bind\n");
 		exit(1);
 	}
@@ -437,8 +437,7 @@ callit(rqstp, xprt)
 	struct pmaplist *pml;
 	u_short port;
 	struct sockaddr_in me;
-	int socket = -1;
-	CLIENT *client;
+	socket_t socket = { .fd = RPC_ANYSOCK };
 	struct authunix_parms *au = (struct authunix_parms *)rqstp->rq_clntcred;
 	struct timeval timeout;
 
@@ -449,10 +448,10 @@ callit(rqstp, xprt)
 	    return;
 	if ((pml = find_service(a.rmt_prog, a.rmt_vers, IPPROTO_UDP)) == NULL)
 	    return;
-	port = pml->pml_map.pm_port;
+	port = (u_short) pml->pml_map.pm_port;
 	get_myaddress(&me);
 	me.sin_port = htons(port);
-	client = clntudp_create(&me, a.rmt_prog, a.rmt_vers, timeout, &socket);
+	CLIENT* client = clntudp_create(&me, a.rmt_prog, a.rmt_vers, timeout, &socket);
 	if (client != (CLIENT *)NULL) {
 		if (rqstp->rq_cred.oa_flavor == AUTH_UNIX) {
 			client->cl_auth = authunix_create(au->aup_machname,
@@ -466,7 +465,7 @@ callit(rqstp, xprt)
 		AUTH_DESTROY(client->cl_auth);
 		clnt_destroy(client);
 	}
-	(void)closesocket(socket);
+	(void)closesocket(socket.socket);
 }
 
 

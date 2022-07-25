@@ -95,7 +95,8 @@ registerrpc(prognum, versnum, procnum, progname, inproc, outproc)
 		return (-1);
 	}
 	if (transp == 0) {
-		transp = svcudp_create(RPC_ANYSOCK);
+		socket_t socket = { .fd = RPC_ANYSOCK };
+		transp = svcudp_create(socket);
 		if (transp == NULL) {
 #ifdef _WIN32
 			nt_rpc_report("couldn't create an rpc server\n");

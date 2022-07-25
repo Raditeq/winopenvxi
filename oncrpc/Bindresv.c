@@ -84,7 +84,7 @@ bindresvport(sd, sin)
 #define ENDPORT (IPPORT_RESERVED - 1)
 #define NPORTS	(ENDPORT - STARTPORT + 1)
 
-	if (sin == (struct sockaddr_in *)0) {
+	if (sin == (struct sockaddr_in *)NULL) {
 		sin = &myaddr;
 //		bzero(sin, sizeof (*sin));
 		bzero((char *)sin, sizeof (*sin));

@@ -87,7 +87,6 @@ callrpc(host, prognum, versnum, procnum, inproc, in, outproc, out)
 	register struct callrpc_private *crp = callrpc_private;
 	struct sockaddr_in server_addr;
 	enum clnt_stat clnt_stat;
-	struct hostent *hp;
 	struct timeval timeout, tottimeout;
 
 	if (crp == 0) {
@@ -108,6 +107,7 @@ callrpc(host, prognum, versnum, procnum, inproc, in, outproc, out)
 	} else {
 		crp->valid = 0;
 #ifdef _WIN32
+		shutdown(crp->socket, SD_BOTH);
 		(void)closesocket(crp->socket);
 #else
 		(void)close(crp->socket);
@@ -117,12 +117,19 @@ callrpc(host, prognum, versnum, procnum, inproc, in, outproc, out)
 			clnt_destroy(crp->client);
 			crp->client = NULL;
 		}
-		if ((hp = gethostbyname(host)) == NULL)
-			return ((int) RPC_UNKNOWNHOST);
+
+		struct addrinfo* addressInfo = NULL;
+		int error = getaddrinfo(host, NULL, NULL, &addressInfo);
+
+		if (error != 0 || addressInfo == NULL || addressInfo->ai_family != AF_INET) {
+			return ((int)RPC_UNKNOWNHOST);
+		}
 		timeout.tv_usec = 0;
 		timeout.tv_sec = 5;
-		bcopy(hp->h_addr, (char *)&server_addr.sin_addr, hp->h_length);
-		server_addr.sin_family = AF_INET;
+		struct sockaddr_in* foundAddress = (struct sockaddr_in* )addressInfo->ai_addr;
+		bcopy((char*)&foundAddress->sin_addr, (char *)&server_addr.sin_addr, sizeof(IN_ADDR));
+		//server_addr.sin_family = AF_INET;
+		server_addr.sin_family = addressInfo->ai_family;
 		server_addr.sin_port =  0;
 		if ((crp->client = clntudp_create(&server_addr, (u_long)prognum,
 		    (u_long)versnum, timeout, &crp->socket)) == NULL)

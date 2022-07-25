@@ -33,11 +33,11 @@ int rpc_nt_init(void)
     if (init++)
 	return 0;
 	
-    if (WSAStartup(0x0101, &WSAData)) {
-	init = 0;
-	nt_rpc_report("WSAStartup failed\n");
-	WSACleanup();
-	return -1;
+    if (WSAStartup(MAKEWORD(2,2), &WSAData)) {
+	    init = 0;
+	    nt_rpc_report("WSAStartup failed\n");
+	    WSACleanup();
+	    return -1;
     }
 
     return 0;
