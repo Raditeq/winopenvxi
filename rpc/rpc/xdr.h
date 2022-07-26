@@ -249,30 +249,30 @@ struct xdr_discrim {
 /*
  * These are the "generic" xdr routines.
  */
-DllExport bool_t	xdr_void();
-DllExport bool_t	xdr_int();
-DllExport bool_t	xdr_u_int();
-DllExport bool_t	xdr_long();
-DllExport bool_t	xdr_u_long();
-DllExport bool_t	xdr_short();
-DllExport bool_t	xdr_u_short();
-DllExport bool_t	xdr_bool();
-DllExport bool_t	xdr_enum();
-DllExport bool_t	xdr_array();
-DllExport bool_t	xdr_bytes();
-DllExport bool_t	xdr_opaque();
-DllExport bool_t	xdr_string();
-DllExport bool_t	xdr_union();
-DllExport bool_t	xdr_char();
-DllExport bool_t	xdr_u_char();
-DllExport bool_t	xdr_vector();
-DllExport bool_t	xdr_float();
-DllExport bool_t	xdr_double();
-DllExport bool_t	xdr_reference();
-DllExport bool_t	xdr_pointer();
-DllExport bool_t	xdr_wrapstring();
-DllExport void      xdr_free();
-DllExport bool_t    xdr_strarray();
+_METHOD_SPEC bool_t	xdr_void();
+_METHOD_SPEC bool_t	xdr_int();
+_METHOD_SPEC bool_t	xdr_u_int();
+_METHOD_SPEC bool_t	xdr_long();
+_METHOD_SPEC bool_t	xdr_u_long();
+_METHOD_SPEC bool_t	xdr_short();
+_METHOD_SPEC bool_t	xdr_u_short();
+_METHOD_SPEC bool_t	xdr_bool();
+_METHOD_SPEC bool_t	xdr_enum();
+_METHOD_SPEC bool_t	xdr_array();
+_METHOD_SPEC bool_t	xdr_bytes();
+_METHOD_SPEC bool_t	xdr_opaque();
+_METHOD_SPEC bool_t	xdr_string();
+_METHOD_SPEC bool_t	xdr_union();
+_METHOD_SPEC bool_t	xdr_char();
+_METHOD_SPEC bool_t	xdr_u_char();
+_METHOD_SPEC bool_t	xdr_vector();
+_METHOD_SPEC bool_t	xdr_float();
+_METHOD_SPEC bool_t	xdr_double();
+_METHOD_SPEC bool_t	xdr_reference();
+_METHOD_SPEC bool_t	xdr_pointer();
+_METHOD_SPEC bool_t	xdr_wrapstring();
+_METHOD_SPEC void      xdr_free();
+_METHOD_SPEC bool_t    xdr_strarray();
 
 /*
  * Common opaque bytes objects used by many rpc protocols;
@@ -284,17 +284,17 @@ struct netobj {
 	char	*n_bytes;
 };
 typedef struct netobj netobj;
-DllExport bool_t   xdr_netobj();
+_METHOD_SPEC bool_t   xdr_netobj();
 
 /*
  * These are the public routines for the various implementations of
  * xdr streams.
  */
-DllExport void   xdrmem_create();		/* XDR using memory buffers */
-DllExport void   xdrstdio_create();	/* XDR using stdio library */
-DllExport void   xdrrec_create();		/* XDR pseudo records for tcp */
-DllExport bool_t xdrrec_endofrecord();	/* make end of xdr record */
-DllExport bool_t xdrrec_skiprecord();	/* move to beginning of next record */
-DllExport bool_t xdrrec_eof();		/* true if no more input */
+_METHOD_SPEC void   xdrmem_create();		/* XDR using memory buffers */
+_METHOD_SPEC void   xdrstdio_create();	/* XDR using stdio library */
+_METHOD_SPEC void   xdrrec_create();		/* XDR pseudo records for tcp */
+_METHOD_SPEC bool_t xdrrec_endofrecord();	/* make end of xdr record */
+_METHOD_SPEC bool_t xdrrec_skiprecord();	/* move to beginning of next record */
+_METHOD_SPEC bool_t xdrrec_eof();		/* true if no more input */
 
 #endif /* __XDR_HEADER__ */

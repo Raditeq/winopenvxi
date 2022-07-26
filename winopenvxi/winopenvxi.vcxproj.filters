@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="vxi11_prot.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="vxi11.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vxi11_prot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

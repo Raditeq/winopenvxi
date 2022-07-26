@@ -92,7 +92,7 @@ enum auth_stat {
 	AUTH_FAILED=7			/* some unknown reason */
 };
 
-#if (mc68000 || sparc || vax || i386)
+#if (defined(mc68000) || defined(sparc) || defined(vax) || defined(i386))
 typedef u_long u_int32;	/* 32-bit unsigned integers */
 
 union des_block {
@@ -112,7 +112,7 @@ union des_block {
 };
 #endif
 typedef union des_block des_block;
-DllExport bool_t xdr_des_block();
+_METHOD_SPEC bool_t xdr_des_block();
 
 /*
  * Authentication info.  Opaque to client.
@@ -182,11 +182,11 @@ extern struct opaque_auth _null_auth;
 #ifdef __BORLANDC__
 extern __declspec(dllimport) struct opaque_auth _null_auth;
 #else
-DllExport struct opaque_auth _null_auth;
+_METHOD_SPEC struct opaque_auth _null_auth;
 #endif
 #endif
 #else  /* not WIN32 */
-DllExport struct opaque_auth _null_auth;
+_METHOD_SPEC struct opaque_auth _null_auth;
 #endif
 
 
@@ -203,10 +203,10 @@ DllExport struct opaque_auth _null_auth;
  *	int len;
  *	int *aup_gids;
  */
-DllExport AUTH *authunix_create();
-DllExport AUTH *authunix_create_default();	/* takes no parameters */
-DllExport AUTH *authnone_create();		/* takes no parameters */
-DllExport AUTH *authdes_create();
+_METHOD_SPEC AUTH *authunix_create();
+_METHOD_SPEC AUTH *authunix_create_default();	/* takes no parameters */
+_METHOD_SPEC AUTH *authnone_create();		/* takes no parameters */
+_METHOD_SPEC AUTH *authdes_create();
 
 #define AUTH_NONE	0		/* no authentication */
 #define	AUTH_NULL	0		/* backward compatibility */

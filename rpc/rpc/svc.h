@@ -181,7 +181,7 @@ struct svc_req {
  *	void (*dispatch)();
  *	int protocol;  /* like TCP or UDP, zero means do not register 
  */
-DllExport bool_t	svc_register();
+_METHOD_SPEC bool_t	svc_register();
 
 /*
  * Service un-registration
@@ -190,7 +190,7 @@ DllExport bool_t	svc_register();
  *	u_long prog;
  *	u_long vers;
  */
-DllExport void	svc_unregister();
+_METHOD_SPEC void	svc_unregister();
 
 /*
  * Transport registration.
@@ -198,7 +198,7 @@ DllExport void	svc_unregister();
  * xprt_register(xprt)
  *	SVCXPRT *xprt;
  */
-DllExport void	xprt_register();
+_METHOD_SPEC void	xprt_register();
 
 /*
  * Transport un-register
@@ -206,7 +206,7 @@ DllExport void	xprt_register();
  * xprt_unregister(xprt)
  *	SVCXPRT *xprt;
  */
-DllExport void	xprt_unregister();
+_METHOD_SPEC void	xprt_unregister();
 
 
 
@@ -237,14 +237,14 @@ DllExport void	xprt_unregister();
  * deadlock the caller and server processes!
  */
 
-DllExport bool_t	svc_sendreply();
-DllExport void	svcerr_decode();
-DllExport void	svcerr_weakauth();
-DllExport void	svcerr_noproc();
-DllExport void	svcerr_progvers();
-DllExport void	svcerr_auth();
-DllExport void	svcerr_noprog();
-DllExport void	svcerr_systemerr();
+_METHOD_SPEC bool_t	svc_sendreply();
+_METHOD_SPEC void	svcerr_decode();
+_METHOD_SPEC void	svcerr_weakauth();
+_METHOD_SPEC void	svcerr_noproc();
+_METHOD_SPEC void	svcerr_progvers();
+_METHOD_SPEC void	svcerr_auth();
+_METHOD_SPEC void	svcerr_noprog();
+_METHOD_SPEC void	svcerr_systemerr();
     
 /*
  * Lowest level dispatching -OR- who owns this process anyway.
@@ -269,11 +269,11 @@ extern fd_set svc_fdset;
 #ifdef __BORLANDC__
 extern __import fd_set svc_fdset;
 #else
-DllExport fd_set svc_fdset;
+_METHOD_SPEC fd_set svc_fdset;
 #endif
 #endif
 #else
-DllExport fd_set svc_fdset;
+_METHOD_SPEC fd_set svc_fdset;
 #endif
 #define svc_fds svc_fdset.fds_bits[0]	/* compatibility */
 #else
@@ -286,9 +286,9 @@ extern int svc_fds;
  */
 extern void rpctest_service();
 
-DllExport void	svc_getreq();
-DllExport void	svc_getreqset();	/* takes fdset instead of int */
-DllExport void	svc_run(); 	 /* never returns */
+_METHOD_SPEC void	svc_getreq();
+_METHOD_SPEC void	svc_getreqset();	/* takes fdset instead of int */
+_METHOD_SPEC void	svc_run(); 	 /* never returns */
 
 /*
  * Socket to use on svcxxx_create call to get default socket
@@ -302,18 +302,18 @@ DllExport void	svc_run(); 	 /* never returns */
 /*
  * Memory based rpc for testing and timing.
  */
-DllExport SVCXPRT *svcraw_create();
+_METHOD_SPEC SVCXPRT *svcraw_create();
 
 /*
  * Udp based rpc.
  */
-DllExport SVCXPRT *svcudp_create(socket_t sock);
-DllExport SVCXPRT *svcudp_bufcreate(socket_t sock, u_int sendsz, u_int recvsz);
+_METHOD_SPEC SVCXPRT *svcudp_create(socket_t sock);
+_METHOD_SPEC SVCXPRT *svcudp_bufcreate(socket_t sock, u_int sendsz, u_int recvsz);
 
 /*
  * Tcp based rpc.
  */
-DllExport SVCXPRT *svctcp_create();
+_METHOD_SPEC SVCXPRT *svctcp_create();
 
 
 

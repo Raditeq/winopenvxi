@@ -65,6 +65,23 @@
 #ifndef __TYPES_RPC_HEADER__
 #define __TYPES_RPC_HEADER__
 
+#ifdef _WIN32
+#define DllExport	__declspec( dllexport )
+#define DllImport	__declspec( dllimport )
+#else
+
+#define DllExport	extern
+#define DllImport	extern
+
+#endif
+
+#ifdef _EXPORTING
+#define _METHOD_SPEC DllExport
+#else
+#define _METHOD_SPEC DllImport
+#endif
+
+
 #define	bool_t	int
 #define	enum_t	int
 #ifndef FALSE

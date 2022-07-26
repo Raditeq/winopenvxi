@@ -1,4 +1,3 @@
-
 // This file is in the Public Domain:
 // - You can do anything you want with it.
 // - You have no legal obligation to do anything else.
@@ -7,15 +6,7 @@
 #ifndef _VXI11_H_
 #define _VXI11_H_
 
-#define	bool_t int
-typedef char *caddr_t;
-typedef unsigned int u_int;
-typedef unsigned long u_long;
-typedef unsigned short u_short;
-
-typedef struct CLIENT CLIENT;
-CLIENT *clnt_create(const char *hostname, unsigned prog, unsigned vers, const char *proto);
-void clnt_destroy(CLIENT* rh);
+#include <rpc/rpc.h>
 
 #define DEVICE_CORE ((u_long)0x0607AF)
 #define DEVICE_CORE_VERSION ((u_long)1)

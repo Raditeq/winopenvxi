@@ -191,7 +191,7 @@ struct rpc_msg {
  * 	XDR *xdrs;
  * 	struct rpc_msg *cmsg;
  */
-DllExport bool_t	xdr_callmsg();
+_METHOD_SPEC bool_t	xdr_callmsg();
 
 /*
  * XDR routine to pre-serialize the static part of a rpc message.
@@ -199,7 +199,7 @@ DllExport bool_t	xdr_callmsg();
  * 	XDR *xdrs;
  * 	struct rpc_msg *cmsg;
  */
-DllExport bool_t	xdr_callhdr();
+_METHOD_SPEC bool_t	xdr_callhdr();
 
 /*
  * XDR routine to handle a rpc reply.
@@ -207,7 +207,7 @@ DllExport bool_t	xdr_callhdr();
  * 	XDR *xdrs;
  * 	struct rpc_msg *rmsg;
  */
-DllExport bool_t	xdr_replymsg();
+_METHOD_SPEC bool_t	xdr_replymsg();
 
 /*
  * Fills in the error part of a reply message.

@@ -20,7 +20,8 @@ int main(int argc, char** argv)
     if (argc > 1) {
         strcpy_s(host, sizeof(host), argv[1]);
     }
-    for (int n = 0, a = 2; a < argc && n < sizeof(DataWrite) - 2; a += 1) {
+    int a = 2;
+    for (size_t n = 0; a < argc && n < sizeof(DataWrite) - 2; a += 1) {
         snprintf(DataWrite + n, sizeof(DataWrite) - n - 2, " %s\n", argv[a]);
         n += strlen(argv[a]) + 1;
     }
@@ -58,7 +59,7 @@ int main(int argc, char** argv)
     wpar.lock_timeout = 10000; // in ms
     wpar.flags = 0;
     wpar.data.data_val = DataWrite;
-    wpar.data.data_len = strlen(DataWrite);
+    wpar.data.data_len = (u_int) strlen(DataWrite);
     if ((wresp = device_write_1(&wpar, VXI11Client)) == NULL) {
         printf("Error writing to vxi instrument\n");
         toret = -1;
