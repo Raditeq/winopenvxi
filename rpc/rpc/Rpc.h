@@ -67,33 +67,29 @@
 
 #ifdef _WIN32
 //#define FD_SETSIZE	128
-#define DllExport	__declspec( dllexport )
-#define DllImport	__declspec( dllimport )
 
-#include <stdlib.h>
 #include <winsock2.h>
-#include <ws2tcpip.h>
-#include <Windows.h>
-#include <stdio.h>
 #include <rpc/types.h>		/* some typedefs */
-#include <process.h>
 #include <rpc/bcopy.h>
 
 #define WSAerrno (WSAGetLastError())
 #define gettimeofday(tv,tz) ((tv)->tv_sec = time(0), (tv)->tv_usec = 0)
 
-DllExport int rpc_nt_init(void);
-DllExport int rpc_nt_exit(void);
-DllExport void nt_rpc_report();
-DllExport int xdr_opaque_auth();
-
 #else  /* not WIN32 */ 
-#define DllExport	extern
-#define DllImport	extern
 
 #include <rpc/types.h>		/* some typedefs */
 #include <netinet/in.h>
 #endif
+
+#ifdef _WIN32
+
+_METHOD_SPEC int rpc_nt_init(void);
+_METHOD_SPEC int rpc_nt_exit(void);
+_METHOD_SPEC void nt_rpc_report();
+_METHOD_SPEC int xdr_opaque_auth();
+
+#endif
+
 
 /* external data representation interfaces */
 #include <rpc/xdr.h>		/* generic (de)serializer */
